@@ -1,0 +1,2090 @@
+<!DOCTYPE html>   
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>플레이한 게임 목록</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7; /* 부드러운 배경색 */
+            color: #333;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px; /* 최대 너비 설정 */
+            background-color: #fff; /* 기본 배경색 */
+            border-radius: 8px; /* 모서리 둥글게 */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 그림자 효과 */
+            flex-direction: column; /* 세로 정렬 */
+        }
+        .search-bar {
+            width: 100%;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .content {
+            display: flex;
+            width: 100%;
+        }
+        .left-container {
+            flex: 2; /* 왼쪽 컨테이너 비율 */
+            padding: 20px;
+            border-right: 1px solid #ddd; /* 오른쪽 경계선 */
+        }
+        .right-container {
+            flex: 1; /* 오른쪽 컨테이너 비율 */
+            padding: 20px;
+            position: sticky;
+            top: 20px; /* 스크롤할 때 화면 위에서 20px 아래에 고정 */
+            max-height: 80vh; /* 화면 높이의 80%로 제한 */
+            overflow-y: auto; /* 세로 스크롤 허용 */
+            height: fit-content; /* 내용에 맞는 높이 설정 */
+        }
+        
+        .games-list {
+            display: block; /* 기본적으로 보이도록 설정 */
+            margin-top: 10px; /* 카테고리와 리스트 간의 간격 */
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #fafafa;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer; /* 마우스 포인터 변경 */
+        }
+        li:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .game-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 5px;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+        .game-title {
+            font-family: 'Roboto', sans-serif;
+            font-size: 1.15em;
+            font-weight: 500;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+        h2 {
+            color: #444;
+            margin-top: 30px;
+            font-size: 1.6em;
+            font-weight: 600;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            cursor: pointer; /* 커서 포인터로 변경 */
+            position: relative; /* 제목 안의 아이콘을 위해 상대적 위치 설정 */
+            padding-right: 25px; /* 아이콘 공간 확보 */
+        }
+        .toggle-icon {
+            position: absolute;
+            right: 0; /* 아이콘 위치 */
+            top: 0;
+            font-size: 0.8em; /* 아이콘 크기 줄이기 */
+            color: #aaa; /* 연한 색상 */
+            transition: transform 0.2s; /* 부드러운 회전 애니메이션 */
+            font-weight: bold; /* 두께 변경 */
+        }
+        .game-count {
+            font-size: 0.9em; /* 게임 개수 표시 폰트 크기 */
+            color: #666; /* 색상 설정 */
+            margin-left: 10px; /* 아이콘과 간격 조정 */
+        }
+        .total-count {
+            font-size: 1em; /* 총 게임 수 폰트 크기 */
+            margin: 10px 0; /* 상하 여백 */
+            text-align: center; /* 가운데 정렬 */
+            color: #ffb566; /* 색상 변경 */
+        }
+        /* 다크 모드 스타일 */
+        body.dark-mode {
+            background-color: #333;
+            color: #f5f5f5;
+        }
+        body.dark-mode .container {
+            background-color: #444;
+        }
+        body.dark-mode h2 {
+            color: #ddd;
+        }
+        body.dark-mode li {
+            background: #555;
+            color: #f5f5f5;
+        }
+        body.dark-mode .game-title {
+            color: #f5f5f5;
+        }
+
+        /* 다크모드에서 검색창 스타일 */
+        body.dark-mode .search-input {
+            background-color: #555;  /* 어두운 배경색 */
+            color: #f5f5f5;  /* 밝은 텍스트 색상 */
+            border: 1px solid #777;  /* 연한 회색 테두리 */
+        }
+
+        body.dark-mode .search-input::placeholder {
+            color: #aaa;  /* 플레이스홀더 텍스트 색상 */
+        }
+        .toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 20px;
+            border-radius: 10px;
+            background-color: #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        .toggle.dark-mode {
+            background-color: #007bff;
+        }
+        .toggle.dark-mode::before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="게임 검색...">
+        </div>
+        <div class="content">
+            <div class="left-container">
+                <h1>
+                    플레이한 게임 목록
+                    <div class="toggle" id="toggleDarkMode"></div>
+                </h1>
+
+                <div id="lastUpdated" style="margin-bottom: 20px; font-size: 0.9em; color: #666; text-align: center;">
+                    최종 업데이트일: 2024년 10월 20일
+                </div>
+                <div class="total-count" id="totalCount">총 게임 수: 0</div> <!-- 총 게임 수 표시 -->
+
+
+                <h2 onclick="toggleGamesList('aiGames')">
+                    1. AI 게임
+                    <span class="toggle-icon" id="aiToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="aiCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="aiGames">
+                    <ul class="game-list">
+                        <li data-title="두근두근 AI 심문 게임"
+                            onclick="showVideo([
+                                {title: 'AI에게 사랑한다고 들었다', link: 'https://youtu.be/dEOsrNVFIWY?si=rKfJRTLhawFgPXze', date: '2024-08-13'}
+                                ,{title: '(Shorts) 고백공격', link: 'https://youtube.com/shorts/bC9MaHGCjQM?si=-a2lGL7Az6sMhaLg', date: '2024-08-15'}
+                                ,{title: '(Shorts) AI식 작별법', link: 'https://youtube.com/shorts/612MbZcmCcc?si=-xzRpBoCGgWF4LOo', date: '2024-08-15'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/GV5FUIOdL7Gr3h_k2XH2BBkTsFQkeUIdS4t_6ggTxGaU20yQ64JL8VYT25FaPqXaRTBBgyQAdS46jWDKL1w9AebZV2-hBynoxaC88YuLYvRUa4GlsNCk5_jfnV564gO4kd7DEkcVbT-YoUYx7beZiQ.webp" alt="두근두근 AI 심문 게임">
+                            <span class="game-title">두근두근 AI 심문 게임 (Doki Doki AI Interrogation)</span>
+                        </li>
+                        <li data-title="언커버 더 스모킹 건" 
+                            onclick="showVideo([
+                                {title: '했네 했어ㄷㄷ AI 자백시키는 게임', link: 'https://youtu.be/_9t0O28ktAk?si=FxAIGS4x-jSTHZYV', date: '2024-09-05'}
+                                ,{title: '(Shorts) AI와 싸우는 인간', link: 'https://youtube.com/shorts/ZD-4AX2CjOM?si=DH9bsPv4rBXbi9KP', date: '2024-09-15'}
+                                ,{title: '(Shorts) 나 관계자야', link: 'https://youtube.com/shorts/fihon2XUvWE?si=M06TXnI1EISeYVrZ', date: '2024-09-15'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/n_dX3cQqUqCI08GXX9Vpo7Zzzt5L0PSWmlLaqNxk-JXbsbbicNWZ9O7iMmzFXtNJhX3Wzpj_2b9mjpeu4Q3MzRGrzY-xPHGTBEXhSnT81IEq5ItNAeR7EjlGX2TB5OBddf7WTj0gOy4E85j_Jg098g.webp" alt="언커버 더 스모킹 건">
+                            <span class="game-title">언커버 더 스모킹 건 (Uncover the Smoking Gun)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('fpsGames')">
+                    2. FPS / TPS 게임
+                    <span class="toggle-icon" id="fpsToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="fpsCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="fpsGames">
+                    <ul class="game-list">
+                        <li data-title="레프트 4 데드 2"
+                            onclick="showVideo([
+                                {title: '[Left 4 Dead 2] 생생좀비통 맛집, 아름다운 팀킬의 현장', link: 'https://youtu.be/GwFSK8xIJB8?si=BJujvoJJTM3hQyOT', date: '2023-09-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/9l8ji8ik89X3wb2aL4CbODhnLEOdtGYuA6OKnXFt5XnQklBty83zCks8d_bzJQ48IZ8cN_C-no92_-IGWxXQESJ5o2vOOrnFjPBYQ4ivI6gB3sBObj0A-rHcOvag_DwIlESmT3c924F0kNHcuHNcWA.webp" alt="레프트 4 데드 2">
+                            <span class="game-title">레프트 4 데드 2 (Left 4 Dead 2)</span>
+                        </li>
+                        <li data-title="메트로: 라스트 라이트"
+                            onclick="showVideo([
+                                {title: '[METRO : LAST LIGHT] 포스트아포칼립스 FPS 호러게임! 메트로 라스트 라이트 풀영상', link: 'https://youtu.be/mA9tZ7BtmLI?si=L8G3_N_eHibwezPK', date: '2023-11-10'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/cr3nhgqkOMNB8xh3z4NMLZGL0BuDXE8mpcr5wACNHndIc--mqERqPJNMa3tH6Joo4D61-QReBxc1RXia56J9ex9x4cNyWTrfRTd6OV2QxOakB9P0H_n6e8NHvxRpfd6cICm4IR5inSKixjXtlMmYfQ.webp" alt="메트로: 라스트 라이트">
+                            <span class="game-title">메트로: 라스트 라이트 (Metro: Last Light Complete Edition)</span>
+                        </li>
+                        <li data-title="발로란트"
+                            onclick="showVideo([
+                                {title: '진짜 뉴비의 발로란트 1일차 찢었습니다.', link: 'https://youtu.be/auD4bQhZlSs?si=qb2BRTnaDZVmh9nj', date: '2023-04-17'}
+                                ,{title: '뉴비의 어쩔 수 없는 뉴비행동 (2일차)', link: 'https://youtu.be/LahAYjKxflI?si=4-YwlQsMdolEVQLo', date: '2023-04-25'}
+                                ,{title: '겁 많은 뉴비의 3일차 발로란트 (낯가리는중)', link: 'https://youtu.be/OYtAuoKqolY?si=Wla5JybvUMRORHSv', date: '2023-04-25'}
+                                ,{title: '모든 게 낯선 4일차 뉴비의 졌잘싸', link: 'https://youtu.be/wm4ZNQZH_YM?si=9Lycd-9Da_dZqFEG', date: '2023-04-29'}
+                                ,{title: '5일차 뉴비의 발로란트는 이렇습니다', link: 'https://youtu.be/UIsO-I5v4nY?si=xl62HxlHZikiKSl6', date: '2023-05-12'}
+                                ,{title: '험난한 데스매치 속 뉴비의 펜타킬', link: 'https://youtu.be/lD0oacke8ic?si=x9DA1LHYHBZLmVy5', date: '2023-05-17'}
+                                ,{title: '이제 막 태어난 응애 뉴비의 4명 클러치', link: 'https://youtu.be/nBUJiaoDXTM?si=IzIy6Qb1BUWAv3Zm', date: '2023-05-21'}
+                                ,{title: '버티컬 유저의 첫 게이밍 마우스! 오? 이것은?!', link: 'https://youtu.be/iUiwuRX9N_Q?si=kEWGJUxNJsIDdV6d', date: '2023-05-30'}
+                                ,{title: '이곳이 내가 누울 자리인가', link: 'https://youtu.be/wTaYw1eqvcY?si=2pYEbWwkesaAxgtK', date: '2023-06-05'}
+                                ,{title: '뉴비가 해냈습니다ㅠㅠ 왕초보의 데스매치 1위', link: 'https://youtu.be/eYbCgLB99uY?si=VUiVgk3Tq4l86Wtq', date: '2023-06-05'}
+                                ,{title: '제 3의 눈 개방', link: 'https://youtu.be/ak3QEYCgvqM?si=vjur8bbFYGgvWftS', date: '2023-06-06'}
+                                ,{title: '아레레? 부활 ..★', link: 'https://youtu.be/mexXRaxN0JQ?si=DHYSUzCVylz75JWC', date: '2023-06-13'}
+                                ,{title: '진짜진짜 초보인데 또 1등했어요', link: 'https://youtu.be/dJj5qhAvA2s?si=FcDatjX90f1QQwiW', date: '2023-06-16'}
+                                ,{title: '찾았다 내 운명', link: 'https://youtu.be/Mr2h6Abog5U?si=CjRZGDgXrxoKYUX2', date: '2023-06-17'}
+                                ,{title: '아 여기가 내 고향인가.. 발로란트 클립', link: 'https://youtu.be/NkYGCzLfkrI?si=PKB07XhuYFXdYoh7', date: '2023-06-22'}
+                                ,{title: '발로란트 업데이트 팀 데스매치 생각보다 더 재밌는 신규 모드', link: 'https://youtu.be/Vh1xPg25MS8?si=1XRN0-UF5MWEbBnK', date: '2023-06-29'}
+                                ,{title: '발로란트 신캐 데드록의 등장', link: 'https://youtu.be/LTULE77kkpA?si=NvD67o5PwbsN-B-6', date: '2023-07-02'}
+                                ,{title: '경쟁 전에 하는 왕초보의 준비 운동', link: 'https://youtu.be/Qxt6x7W4W78?si=hwRtm83gQT50CgKh', date: '2023-07-06'}
+                                ,{title: '저도 뉴비인데.. 스승이 되어달라고요?', link: 'https://youtu.be/quPr7snOY54?si=0Tgd6GWgwl92_uIv', date: '2023-07-10'}
+                                ,{title: '불멸도 인정한 초보의 실력은 과연?', link: 'https://youtu.be/OxigfhDt3E4?si=jBJrtViFnhGhlpij', date: '2023-07-13'}
+                                ,{title: '뉴비의 뉴비다운 레이나 사용법', link: 'https://youtu.be/3cyvjubrfIE?si=k-FM9d7pZxKgs2Wp', date: '2023-07-17'}
+                                ,{title: '얼굴 공개? 신속 클립 모음', link: 'https://youtu.be/3M7nnZHgbmY?si=yrpY3tTxyYtGLn82', date: '2023-07-18'}
+                                ,{title: '헤드샷만 노리는 응애 뉴비의 첫 오멘 플레이', link: 'https://youtu.be/OoWfNFX6cRQ?si=dZDQ_TFg6jLXEGo8', date: '2023-07-18'}
+                                ,{title: '퇴화할 것도 없지만 퇴화하는 뉴비', link: 'https://youtu.be/KXIaCFqcv2M?si=Hh_d3gwrFZGBrkag', date: '2023-07-23'}
+                                ,{title: '허당 문선생을 찾으셨나요?', link: 'https://youtu.be/bJuoHvuRaEY?si=OpXNtQcSIwzLavgz', date: '2023-07-31'}
+                                ,{title: '보여줄게 완전히 달라진 나', link: 'https://youtu.be/w5cTNvny9C8?si=2Ge69esHLDG0vJcJ', date: '2023-08-06'}
+                                ,{title: '자 떨어보실게요 뉴비의 요란법석~', link: 'https://youtu.be/yZxU_F7TaKk?si=w0QXTvhl7y9cXKEk', date: '2023-08-12'}
+                                ,{title: '실명 성공?! 이쪽이야!!!!!', link: 'https://youtu.be/ajTFsIwGuY8?si=CPfwQfv04R87ai69', date: '2023-08-14'}
+                                ,{title: '당신.. 스킨 있어 ..?', link: 'https://youtu.be/5_QBsE-rwe0?si=-i2-2sNoyIHS5Z6g', date: '2023-08-17'}
+                                ,{title: '키딩과 함께하는 오퍼 킬 모음', link: 'https://youtu.be/s5zP26SeaPY?si=7ZN9phjwnZP1Nc3y', date: '2023-08-22'}
+                                ,{title: '이번 생은 요루가 처음이라서', link: 'https://youtu.be/pRhGZ7MF2WY?si=uOO49fjZnPU9aSVu', date: '2023-08-31'}
+                                ,{title: '발로란트는 역시 역전, 짜릿한 이 맛', link: 'https://youtu.be/ZZ_oXR0ka1w?si=WZQCQrPXydmcnbzE', date: '2023-09-01'}
+                                ,{title: '보지마세요!!! 뉴비의 처절한 외침', link: 'https://youtu.be/8AAvRZU7glQ?si=ng9mRToSRaM2ZAru', date: '2023-09-02'}
+                                ,{title: '발로란트 초전도체 신맵의 등장 선셋', link: 'https://youtu.be/QIJf89-CNjY?si=b5ueCx8RfLhB4kYm', date: '2023-09-03'}
+                                ,{title: '쏜다면 쏜다!! 뉴비의 선셋 풍경', link: 'https://youtu.be/2pH6keDMLhY?si=SNb8AeaTiaQeTuhB', date: '2023-09-05'}
+                                ,{title: '어라? 자석인가요???', link: 'https://youtu.be/AmopNsgNR7k?si=rHNILBum-yWQwOh7', date: '2023-09-09'}
+                                ,{title: '제법 앙칼진 오두방정 비명 맛집', link: 'https://youtu.be/soEXNfKY8lI?si=dbiVoxHYhoovKJrT', date: '2023-09-23'}
+                                ,{title: '초보가 초심 찾는 영상일 뿐', link: 'https://youtu.be/D0gw6_Iyakw?si=f62QRDc1qJcixUcM', date: '2023-09-29'}
+                                ,{title: '한 오멘이 있는데 자꾸 이러면 안되는데', link: 'https://youtu.be/FSFjHXzjCXE?si=ww1ckyg4x16o2rbz', date: '2023-10-20'}
+                                ,{title: '비명주의 팀워크의 비결', link: 'https://youtu.be/gd0RTQnHsOo?si=9gKXlnxmmwt2inx2', date: '2023-10-21'}
+                                ,{title: '울먹거리면서 다 죽이는 초보', link: 'https://youtu.be/lkqgtFB4SrU?si=Mf_Kw4JZpI-ubkMI', date: '2023-11-04'}
+                                ,{title: '완전뉴비의 뒷발로 혼자서도 잘 놀아요', link: 'https://youtu.be/OCMDQYKwO4k?si=s4iUwC3E298eebAp', date: '2023-11-05'}
+                                ,{title: '얼렁뚱땅 초보의 발로란트 세상', link: 'https://youtu.be/y0uCkNlu2xQ?si=AilmJzEY8SG7WQbS', date: '2023-11-05'}
+                                ,{title: '왕초보의 첫 에이스', link: 'https://youtu.be/DwJryrZQbLU?si=KCGq4mmmq0_BuXG1', date: '2023-11-08'}
+                                ,{title: '그래 네 상대는 나다!! 그저 즐거운 뉴비', link: 'https://youtu.be/5piPmm7wqVk?si=O3omrHSRfTUp3zWk', date: '2023-11-17'}
+                                ,{title: '꿍얼꿍얼 뉴비의 킬욕심', link: 'https://youtu.be/5ft24f3yks4?si=Tba3WcNBefTp9i0-', date: '2023-11-23'}
+                                ,{title: '게코만 하면 지원봇이 되는 사람', link: 'https://youtu.be/U-sc5xETRRM?si=F5rlXlEEGvGvgGcj', date: '2023-11-29'}
+                                ,{title: '(Shorts) 이년이', link: 'https://youtube.com/shorts/1HGYFwCJazc?si=L70XsdO9KUE1PAko', date: '2023-12-06'}
+                                ,{title: '못해도 즐거운 뉴비의 발로란트', link: 'https://youtu.be/imWxkRF926g?si=63FUqVX4pZPxJuKs', date: '2023-12-07'}
+                                ,{title: '(Shorts) 울먹거리면서 다 죽이는 뉴비', link: 'https://youtube.com/shorts/LzAJ-RUVq9Y?si=KXEAPBw9XGwzm82u', date: '2024-03-03'}
+                                ,{title: '(Shorts) 심장 터질 뻔한 뉴비의 에이스', link: 'https://youtube.com/shorts/l8m0QYaBEPQ?si=8KU2MK10zpyWAtZt', date: '2024-03-12'}
+                                ,{title: '(Shorts) 사플 포기', link: 'https://youtube.com/shorts/UqBa1e5saB8?si=wpGoLW7uuzdpDnI7', date: '2024-03-23'}
+                                ,{title: '(Shorts) 발로란트에 코난 브금이 섞이면?', link: 'https://youtube.com/shorts/ZUcHj5MxOio?si=S48TbIPaFnhAySm3', date: '2024-04-05'}
+                                ,{title: '(Shorts) 스파이', link: 'https://youtube.com/shorts/FUuf5bSPhCk?si=gkM1wUqe_1A3JI21', date: '2024-04-05'}
+                                ,{title: '(Shorts) 아이참~ 괜찮다니까 그르네', link: 'https://youtube.com/shorts/pajjlP_xPxw?si=mLoSgbIdOLUvaHMl', date: '2024-05-06'}
+                                ,{title: '(Shorts) 누구의 플레이인가', link: 'https://youtube.com/shorts/4-rA6H4-RR0?si=1GS2XJq_gM7KHQqY', date: '2024-05-10'}
+                                ,{title: '(Shorts) 피할 수 없는 공포 게임', link: 'https://youtube.com/shorts/nNkrqrwTyAQ?si=Gu-2_COUf4hT5Lmk', date: '2024-05-11'}
+                                ,{title: '(Shorts) 충전', link: 'https://youtube.com/shorts/WzVUX7cx8xA?si=mlfRi7LihCUF9dT6', date: '2024-05-12'}
+                                ,{title: '(Shorts) 발로란트 신맵 어비스', link: 'https://youtube.com/shorts/v3k3VEUioR0?si=BFFFT-kq_Yt44JSL', date: '2024-06-22'}
+                                ,{title: '(Shorts) 뜨거운 그녀', link: 'https://youtube.com/shorts/HETV_hMrYvc?si=O0xgVbIqgtN2u53j', date: '2024-10-18'}
+                            ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/fgvfK_2zpyoNT5lotIfF6gLOJXPxl5NQetFOmHBlEurwL2qYRbZB9MyfI6kXazVcaEyOtX5eKWthLPPcXrWw_14PnjFIkUFGiOBZNSbdC58FTk2Yc8PCH4WKSzYao2UJncRlj16BylY-tfNHQA91fw.svg" alt="발로란트">
+                            <span class="game-title">발로란트 (VALORANT)</span>
+                        </li>
+                        <li data-title="배틀그라운드"
+                            onclick="showVideo([
+                                {title: '오합지졸 배그 시참ㅋㅋㅋㅋㅋ 난리가 났어요~', link: 'https://youtu.be/hwRw3N9cYYo?si=cMoZnOIL2oVpZJ49', date: '2023-07-11'}
+                                ,{title: '고인물 괴롭히기ㅋㅋㅋㅋㅋㅋ덤앤더머 듀오 모음', link: 'https://youtu.be/TzFLqeK498A?si=sCNcOmjwE9SSuNUg', date: '2023-07-23'}
+                                ,{title: '배린이 손에 쥐어지는 마체테 하나 ..★', link: 'https://youtu.be/M0Xe77AC-do?si=qn7gCTFBuKmHZrag', date: '2023-09-06'}
+                                ,{title: '스트리머가 연기하는데 시청자가 고통받는 시참ㅋㅋㅋㅋㅋㅋ', link: 'https://youtu.be/M4HcrrhYyYQ?si=DD3zhgIOMroAnzdN', date: '2023-09-16'}
+                                ,{title: '(Shorts) 눕방', link: 'https://youtube.com/shorts/wbrTAVggAbs?si=e72R9yys5_aKcWKb', date: '2024-01-03'}
+                                ,{title: '진짜 레전드 컨트롤ㅋㅋㅋㅋㅋ대환장의 순간', link: 'https://youtu.be/NcwxlSFolLk?si=8wqO37tAVJbjvAUb', date: '2024-01-04'}
+                                ,{title: '(Shorts) 방심', link: 'https://youtube.com/shorts/U6C4aFEvSKg?si=xM-63PeCK3owq3Qf', date: '2024-01-04'}
+                                ,{title: '(Shorts) 내려 가실게요', link: 'https://youtube.com/shorts/aNdSRQsbrb8?si=kRUR2UYxquTAXPfw', date: '2024-02-27'}
+                                ,{title: '(Shorts) 상여자 특', link: 'https://youtube.com/shorts/3sO70ht2juc?si=Og95pcmsS8PKkpyF', date: '2024-03-09'}
+                                ,{title: '(Shorts) 깡주먹', link: 'https://youtube.com/shorts/67dLOo4tYmo?si=hTZ-AkcrG5PFfMNs', date: '2024-03-09'}
+                                ,{title: '(Shorts) 자기장씨', link: 'https://youtube.com/shorts/Lxf3mi4Y1pk?si=tjpLtY-O_q_ieARw', date: '2024-03-10'}
+                                ,{title: '(Shorts) 태세전환', link: 'https://youtube.com/shorts/IxW-YbgHbxY?si=g2XeqefIZfCHR_PU', date: '2024-03-10'}
+                                ,{title: '(Shorts) 사이즈 미스', link: 'https://youtube.com/shorts/V0IErNoFhUg?si=W_wtzXRuEOWpujK1', date: '2024-03-10'}
+                                ,{title: '(Shorts) 진정한 연명', link: 'https://youtube.com/shorts/xIdHJko6AYc?si=8y26oVyjYXcgjOa8', date: '2024-03-18'}
+                                ,{title: '(Shorts) 새벽 배그하던 중 목 푸는 버튜버', link: 'https://youtube.com/shorts/b2CXbHVCJi8?si=38pkp0A-zBKZdzdQ', date: '2024-03-19'}
+                                ,{title: '(Shorts) 키', link: 'https://youtube.com/shorts/sB_g8BxJ5i8?si=tmr6a-244sgDkmwd', date: '2024-03-20'}
+                                ,{title: '(Shorts) 상여자식 주차', link: 'https://youtube.com/shorts/g9kttcxEnRQ?si=gGN239iDIldAZ3qG', date: '2024-03-22'}
+                                ,{title: '(Shorts) 소리없이 배그하는데 일어난 일', link: 'https://youtube.com/shorts/jKVREAKMDPQ?si=zGn3eBSG-0WPvzzH', date: '2024-03-28'}
+                                ,{title: '(Shorts) 근사한 각도', link: 'https://youtube.com/shorts/MKdYB6r6TYQ?si=BLKAdLGWVC6GjqQG', date: '2024-03-29'}
+                                ,{title: '(Shorts) 졸음방지배그', link: 'https://youtube.com/shorts/f8lmhDzzX9g?si=eprphttlQqVeh9WK', date: '2024-03-30'}
+                                ,{title: '(Shorts) 진기명기', link: 'https://youtube.com/shorts/-0BLiE_c9sU?si=0kjcjcxZD2QRbyZi', date: '2024-03-31'}
+                                ,{title: '(Shorts) 거의 달인', link: 'https://youtube.com/shorts/qD986co5O3o?si=Aiziy5y8E6wSwc5Q', date: '2024-04-01'}
+                                ,{title: '(Shorts) 초음파 발사', link: 'https://youtube.com/shorts/6kS6L1_6DO0?si=VXa7HXDkNIE--HBd', date: '2024-04-06'}
+                                ,{title: '(Shorts) 대환장 파티', link: 'https://youtube.com/shorts/2-3LZ2Ml7nU?si=IKrW0I0EhOKSvdKT', date: '2024-04-07'}
+                                ,{title: '(Shorts) 폭주족 가실게요', link: 'https://youtube.com/shorts/SZ8CbrVgpnE?si=FFZUyyKVdpqnlOWv', date: '2024-04-14'}
+                                ,{title: '(Shorts) 하면 안되는 말', link: 'https://youtube.com/shorts/sscHlCiKivg?si=fSk_Xj3CkIwe0EhX', date: '2024-04-15'}
+                                ,{title: '(Shorts) 다이빙', link: 'https://youtube.com/shorts/7a34TdjPL1k?si=f-6BA-EM36nELw4f', date: '2024-04-16'}
+                                ,{title: '(Shorts) 혼자 분주한 라이더', link: 'https://youtube.com/shorts/MwpWZpqab_E?si=AA0cGU3fKcSEDnX7', date: '2024-04-17'}
+                                ,{title: '(Shorts) 복귀하세요', link: 'https://youtube.com/shorts/4E69yQ3mYkk?si=qdjrw04y5jjTcegs', date: '2024-04-18'}
+                                ,{title: '(Shorts) 이거에 놀란 사람 없나', link: 'https://youtube.com/shorts/nCHuWa1B6iw?si=Kd_BO6O-JFrn-L_H', date: '2024-04-19'}
+                                ,{title: '(Shorts) 돌멩이입니다', link: 'https://youtube.com/shorts/zUxgpgHU-Fk?si=KHCoxKgDSs3XfanO', date: '2024-04-20'}
+                                ,{title: '(Shorts) 의욕 과다', link: 'https://youtube.com/shorts/x9QhGMea5Ls?si=27x7XtJJcv56NOK_', date: '2024-04-26'}
+                                ,{title: '(Shorts) 4월24일의 저주', link: 'https://youtube.com/shorts/4CquS7A50-I?si=D6BGUD9TaBtZ2UjU', date: '2024-04-27'}
+                                ,{title: '(Shorts) 자율 주행', link: 'https://youtube.com/shorts/5RW1tTnaSb8?si=LwMolQYkaJTtnX5B', date: '2024-04-29'}
+                                ,{title: '(Shorts) 킹받는 킬', link: 'https://youtube.com/shorts/bf1_cRNGacw?si=b79iQsvFoyVa7_8A', date: '2024-05-02'}
+                                ,{title: '(Shorts) 3단 쫄', link: 'https://youtube.com/shorts/rG5gb7NiJ0M?si=a5IH7wHt6q_kNeXX', date: '2024-05-03'}
+                                ,{title: '(Shorts) 상여자인 듯 상여자 아닌', link: 'https://youtube.com/shorts/yOw9fIiWDWg?si=_9aaFkoF2FMaN-2T', date: '2024-05-04'}
+                                ,{title: '(Shorts) 버퍼링', link: 'https://youtube.com/shorts/ISEh8tqSznE?si=xZaFdpozsEoOxLHr', date: '2024-05-05'}
+                                ,{title: '(Shorts) 희생', link: 'https://youtube.com/shorts/UrC0yGYgOtk?si=mTqz42EQCNbLeDvQ', date: '2024-05-11'}
+                                ,{title: '(Shorts) 배린이의 배그 브이로그', link: 'https://youtube.com/shorts/VIfHg242gcQ?si=Dalgj8kT5I3Q6NeH', date: '2024-05-11'}
+                                ,{title: '(Shorts) 달콤한 유혹', link: 'https://youtube.com/shorts/EqxnzOYYU_M?si=TSXGi9nP5eandCDS', date: '2024-05-12'}
+                                ,{title: '(Shorts) 실제로 도망가는 사람', link: 'https://youtube.com/shorts/hJi6A8VXBxk?si=jkkGT6sEWS2J5J-n', date: '2024-05-13'}
+                                ,{title: '(Shorts) 파란만장', link: 'https://youtube.com/shorts/fQsjOr8O5f8?si=3qmGVo1lawbRW3Q5', date: '2024-05-13'}
+                                ,{title: '(Shorts) 오뚝이차', link: 'https://youtube.com/shorts/HK98_0nqcqc?si=iSKJXe05D_Q_RmlM', date: '2024-05-14'}
+                                ,{title: '(Shorts) 여기 보세요', link: 'https://youtube.com/shorts/pjLaQklp9HU?si=pQ6RqWjfUxxX-rtx', date: '2024-05-14'}
+                                ,{title: '(Shorts) 오롤롤로 버튜버', link: 'https://youtube.com/shorts/uwqnMI4i-4c?si=lT4JSiljQHJBhPZl', date: '2024-05-15'}
+                                ,{title: '(Shorts) 조금 이상한 차 사용법', link: 'https://youtube.com/shorts/yG7VjZmPUhQ?si=NoX4z2rjGKrEoLxs', date: '2024-05-15'}
+                                ,{title: '(Shorts) 문단속', link: 'https://youtube.com/shorts/2UrkO6VhnBA?si=_UF5NSlawGDLpOhu', date: '2024-05-22'}
+                                ,{title: '(Shorts) 하이에나 정신', link: 'https://youtube.com/shorts/xeszjOIM8Fw?si=Z6jDvVzDXgSxM-xb', date: '2024-05-22'}
+                                ,{title: '(Shorts) 마라탕후루 경적', link: 'https://youtube.com/shorts/7ZevqzVDSIo?si=nBaH6cWdczgIfwI8', date: '2024-05-23'}
+                                ,{title: '(Shorts) 누구의 난입인가', link: 'https://youtube.com/shorts/nnxpI8Lw7eQ?si=3uA1rEnP50-OXvkL', date: '2024-05-23'}
+                                ,{title: '(Shorts) 탕탕 후루후루', link: 'https://youtube.com/shorts/lBQ5XbKM0d8?si=YYRH7LWH04Br1NKL', date: '2024-05-24'}
+                                ,{title: '(Shorts) 절벽입니다', link: 'https://youtube.com/shorts/QZF9cxvc6H0?si=IX8l_b3slYwtHb6N', date: '2024-05-24'}
+                                ,{title: '(Shorts) 화르륵', link: 'https://youtube.com/shorts/7rjYkEbTaMI?si=NBd2yz8SLoc74ib1', date: '2024-05-25'}
+                                ,{title: '(Shorts) 목격자', link: 'https://youtube.com/shorts/45M_VLxYnsk?si=8aee7OnkCxe-0IQP', date: '2024-06-24'}
+                                ,{title: '(Shorts) 내비게이션 괴담', link: 'https://youtube.com/shorts/NG6McykWKno?si=UaEAfA9KisX0DjiJ', date: '2024-06-24'}
+                                ,{title: '(Shorts) 참을 수 없어서 그만', link: 'https://youtube.com/shorts/F2VvSMk-GmM?si=styeGiYovHt8Shx3', date: '2024-06-25'}
+                                ,{title: '(Shorts) 공포의 돌잡이', link: 'https://youtube.com/shorts/izUY6b_Te1s?si=Lxs8-2X2vMpsHKS2', date: '2024-06-25'}
+                                ,{title: '(Shorts) 지나가실게요', link: 'https://youtube.com/shorts/x58tV14s_jE?si=W3oq0NdHF8_ZSkeP', date: '2024-06-26'}
+                                ,{title: '(Shorts) 와 판처ㄷㄷ 이건 몰랐겠지', link: 'https://youtube.com/shorts/agCfiqgtJq4?si=VP9-3DHi62W6-JFo', date: '2024-07-01'}
+                                ,{title: '(Shorts) 리플레이인가', link: 'https://youtube.com/shorts/NROeLS-Ei5k?si=Bt-MW60bVtMF9MJL', date: '2024-07-01'}
+                                ,{title: '(Shorts) 판처그', link: 'https://youtube.com/shorts/g5Sr_WvakWk?si=F-ofEy663D_PyXk_', date: '2024-07-02'}
+                                ,{title: '(Shorts) 좋아함의 본능', link: 'https://youtube.com/shorts/DslVSpCJpBs?si=X1r260ZEHcVnqcjh', date: '2024-07-03'}
+                                ,{title: '(Shorts) 아프면 손 드세요', link: 'https://youtube.com/shorts/LeiutJFnHiI?si=LaeK2xMS8pTJ9IYi', date: '2024-07-03'}
+                                ,{title: '(Shorts) 살았다', link: 'https://youtube.com/shorts/vdFL78eX6C4?si=33kXCzdMcKmePdbw', date: '2024-07-04'}
+                                ,{title: '(Shorts) 남의 집에 들어갔을 때', link: 'https://youtube.com/shorts/hQU2yVhtinM?si=RHpA1X9b-sx4sLj-', date: '2024-07-08'}
+                                ,{title: '(Shorts) 금붕어', link: 'https://youtube.com/shorts/jU7DEmjfD60?si=pukkpWaoJD_PhrZJ', date: '2024-07-11'}
+                                ,{title: '(Shorts) 씨포자폭', link: 'https://youtube.com/shorts/39o7McGfF4E?si=NnWvLzF__hBtre2m', date: '2024-07-11'}
+                                ,{title: '(Shorts) 희한한 연막탄', link: 'https://youtube.com/shorts/R_j5kV--Wkc?si=hhTw_jpHVRUY1MXo', date: '2024-07-12'}
+                                ,{title: '(Shorts) 초당옥수수', link: 'https://youtube.com/shorts/PduAR7YV63A?si=EM_Y0mClSSzB4eCd', date: '2024-07-12'}
+                                ,{title: '(Shorts) 말벌 아저씨', link: 'https://youtube.com/shorts/PoS2yyOf49k?si=v8QsigkiG6KJW6W1', date: '2024-07-12'}
+                                ,{title: '(Shorts) 배그에서 매드맥스 어떤데', link: 'https://youtube.com/shorts/-6e9jVLz0go?si=sOIYO4Rc8axt4MCy', date: '2024-07-13'}
+                                ,{title: '(Shorts) 여유만만', link: 'https://youtube.com/shorts/eTTezBzprXI?si=OM1EAWwyjlMicwfR', date: '2024-07-13'}
+                                ,{title: '(Shorts) 중대사항', link: 'https://youtube.com/shorts/XVtEiRRR1nE?si=llXMOimh_TkJeT9z', date: '2024-07-14'}
+                                ,{title: '(Shorts) Mk14 고라니', link: 'https://youtube.com/shorts/jCCN0nQJOzo?si=WW52wihZ0Hjj-of9', date: '2024-07-14'}
+                                ,{title: '(Shorts) 화생방', link: 'https://youtube.com/shorts/rbKM4_Sv6rM?si=svUvwT9vH30rOKMC', date: '2024-07-15'}
+                                ,{title: '(Shorts) 배그 솔직히', link: 'https://youtube.com/shorts/w-6Zn5NWLE4?si=VVBmR9DMgTf6j_WD', date: '2024-07-15'}
+                                ,{title: '(Shorts) 레전드 로드킬 당한 유튜버', link: 'https://youtube.com/shorts/wyJsoWG-FEY?si=8ySq1UPEySnx_pSg', date: '2024-07-16'}
+                                ,{title: '(Shorts) 죽느냐 사느냐', link: 'https://youtube.com/shorts/hRAicr2JVX8?si=nQcscFHCmZfSrIFN', date: '2024-07-23'}
+                                ,{title: '(Shorts) 귀여워서 사망', link: 'https://youtube.com/shorts/wQI-14QqVrM?si=z5IpHuGn-TE1q5r3', date: '2024-07-29'}
+                                ,{title: '(Shorts) 혼신의 힘', link: 'https://youtube.com/shorts/A5IFWbEgvuE?si=FI-ZOXZcNUaP9RaJ', date: '2024-07-29'}
+                                ,{title: '(Shorts) 외로운 싸움', link: 'https://youtube.com/shorts/Qe8nw0qLp-0?si=0DWcMgwp7PzvmEFg', date: '2024-07-30'}
+                                ,{title: '(Shorts) 우루스 루쏘', link: 'https://youtube.com/shorts/ZzWjoaSCDCo?si=YXKf7_fJtSZh5Y7d', date: '2024-07-30'}
+                                ,{title: '(Shorts) 진정한 달인', link: 'https://youtube.com/shorts/2K2fBzh-eVA?si=btOy6eeoaCXmBGa5', date: '2024-07-31'}
+                                ,{title: '(Shorts) 몰래 온 손님', link: 'https://youtube.com/shorts/P6QRlGAg348?si=dGKExPs4PaQbeIzP', date: '2024-07-31'}
+                                ,{title: '(Shorts) 사람경보', link: 'https://youtube.com/shorts/DKXbSqoGajw?si=2-6C7g6nWztAACqU', date: '2024-08-01'}
+                                ,{title: '(Shorts) 이게 아닌데', link: 'https://youtube.com/shorts/jVE_p2pzxa0?si=wdph6Y3AfrvAIzTM', date: '2024-08-01'}
+                                ,{title: '(Shorts) 따뜻한 시체', link: 'https://youtube.com/shorts/G1rpgkfCnAI?si=yhbQQ_BEEoIiLhQb', date: '2024-08-14'}
+                                ,{title: '(Shorts) 각개전투', link: 'https://youtube.com/shorts/v57pqfigtOo?si=BmDuVcivYh0CqCRF', date: '2024-08-14'}
+                                ,{title: '(Shorts) 소독차', link: 'https://youtube.com/shorts/Ag2Wt5IfSeo?si=FK7fxZMmesp-kxlZ', date: '2024-08-15'}
+                                ,{title: '(Shorts) MG3의 최후', link: 'https://youtube.com/shorts/F5Q7wLn2N-Y?si=BqJW-1yGQi7LJfJQ', date: '2024-08-16'}
+                                ,{title: '(Shorts) 뇌정지 사망', link: 'https://youtube.com/shorts/fZQmwf4P8uQ?si=MIVFq3TXFRT9IcIa', date: '2024-08-17'}
+                                ,{title: '(Shorts) 본능이니까', link: 'https://youtube.com/shorts/v5pzPA-1kW0?si=9eBc9LKor_LNs7fR', date: '2024-08-18'}
+                                ,{title: '(Shorts) 극한 체험', link: 'https://youtube.com/shorts/jnoI1CwStMs?si=eQ0Z2XVxuMInvZhs', date: '2024-08-19'}
+                                ,{title: '(Shorts) 연명', link: 'https://youtube.com/shorts/i7qfroOKIQw?si=6W1Nw2l-DZnPPqvF', date: '2024-08-23'}
+                                ,{title: '(Shorts) 자유로운 착각', link: 'https://youtube.com/shorts/71LvAwO2kdw?si=vpVJNp1AReobgdMp', date: '2024-08-23'}
+                                ,{title: '(Shorts) 차량 배달', link: 'https://youtube.com/shorts/mS71_p29SoM?si=WbGtjQOwqnqjdOFx', date: '2024-08-26'}
+                                ,{title: '(Shorts) 눈뽕작렬', link: 'https://youtube.com/shorts/12RAcLl3UJ0?si=FYe34R4R5iRPjJma', date: '2024-08-26'}
+                                ,{title: '(Shorts) 성낸 사람 특', link: 'https://youtube.com/shorts/DONWtfBgN9c?si=htPDGRg64fZblSaH', date: '2024-08-27'}
+                                ,{title: '(Shorts) 증명할 길이 없네', link: 'https://youtube.com/shorts/AVhdAFnMf_o?si=GLZpv_ep1hEASQkT', date: '2024-08-27'}
+                                ,{title: '(Shorts) 하늘에서 내려온 먹잇감', link: 'https://youtube.com/shorts/B-sbUdeuN3M?si=YZAmUUwXjEez47Y_', date: '2024-08-28'}
+                                ,{title: '(Shorts) 마체테 욕심', link: 'https://youtube.com/shorts/AXgVMDO2i_Q?si=BRA9ZbEpzNdeRdI9', date: '2024-08-29'}
+                                ,{title: '(Shorts) 희망과 절망 그 사이', link: 'https://youtube.com/shorts/oMEXEaXobzo?si=qSJmE6LdGgf_pTar', date: '2024-08-29'}
+                                ,{title: '(Shorts) 자석 수류탄', link: 'https://youtube.com/shorts/u-P04e_pC_s?si=_Netjj6ae8LzyHBD', date: '2024-08-29'}
+                                ,{title: '(Shorts) 죽음의 달인', link: 'https://youtube.com/shorts/eVD29Zamseo?si=fvpgOrbRvfjk544c', date: '2024-08-30'}
+                                ,{title: '(Shorts) 호기심 동산', link: 'https://youtube.com/shorts/UccafIfW7QI?si=9GWoKeCY4NpYwlij', date: '2024-08-30'}
+                                ,{title: '(Shorts) 서프라이즈', link: 'https://youtube.com/shorts/m_idKBI92JQ?si=88Vi40u9SKg2f6HV', date: '2024-08-31'}
+                                ,{title: '(Shorts) 귀여워하는 편', link: 'https://youtube.com/shorts/UI1kLugIg50?si=K8AzFqIQX1En2cKa', date: '2024-08-31'}
+                                ,{title: '(Shorts) 한 발자국', link: 'https://youtube.com/shorts/3n93cl7nEqU?si=YPA1Pt97mfAf6P4V', date: '2024-09-01'}
+                                ,{title: '(Shorts) 타고 싶을 뿐인데', link: 'https://youtube.com/shorts/cqRcX4JcmDw?si=qPwiCJUBDS7QTOhI', date: '2024-09-01'}
+                                ,{title: '(Shorts) 고의 아닌 뺑소니', link: 'https://youtube.com/shorts/MUjRTv1Qwoo?si=pfCrTZqha_0Wsmgh', date: '2024-09-01'}
+                                ,{title: '(Shorts) 나빌레라', link: 'https://youtube.com/shorts/T_kH2eI90z8?si=7m-66N208dcUJG-O', date: '2024-09-02'}
+                                ,{title: '(Shorts) 럭키비키잖아', link: 'https://youtube.com/shorts/9j-etaiHBQI?si=0tI1sxwQoP-rsM4g', date: '2024-09-02'}
+                                ,{title: '(Shorts) 복귀를 하지 않은 죄', link: 'https://youtube.com/shorts/4biIrrKH4mo?si=UaIwFkfVtxDuQ_ZE', date: '2024-09-02'}
+                                ,{title: '(Shorts) 해치지 않아요', link: 'https://youtube.com/shorts/FSKY-fWmKvw?si=OSL0J0AacBRzWiBp', date: '2024-09-03'}
+                                ,{title: '(Shorts) 지금 이 순간', link: 'https://youtube.com/shorts/de9keKzoehs?si=WRu07GswHPU8Yg9s', date: '2024-09-04'}
+                                ,{title: '(Shorts) 랩하는 호소인', link: 'https://youtube.com/shorts/EDWUcBITCM4?si=HXyJykYfHf066y9d', date: '2024-09-04'}
+                                ,{title: '(Shorts) 튕기는 차', link: 'https://youtube.com/shorts/iFqmWAkM03Q?si=GwizmBMCa1yVPDqM', date: '2024-09-09'}
+                                ,{title: '(Shorts) 일심동체', link: 'https://youtube.com/shorts/4w4pD6SXdBM?si=mfM4rN-nEeyRMKkh', date: '2024-09-09'}
+                                ,{title: '(Shorts) 독보적 욕심', link: 'https://youtube.com/shorts/ar3RWH3Lpz8?si=1ds2s6xssuSDJzV3', date: '2024-09-10'}
+                                ,{title: '(Shorts) 람보르기니 도둑', link: 'https://youtube.com/shorts/8u0MSgfauZI?si=6DazQuW1J01Gl2gn', date: '2024-09-10'}
+                                ,{title: '(Shorts) 트럭 눕방', link: 'https://youtube.com/shorts/OETgsgZPKEw?si=Wm58U1I1Dule_CCP', date: '2024-09-11'}
+                                ,{title: '(Shorts) 전력 질주', link: 'https://youtube.com/shorts/h-zY6frpeWI?si=dO8ZmelJ8UFF4NNh', date: '2024-09-11'}
+                                ,{title: '(Shorts) 안된다씨', link: 'https://youtube.com/shorts/PyEsZ-xRdT8?si=0mGXDlrK-EGisrdZ', date: '2024-09-12'}
+                                ,{title: '(Shorts) 붕대 추락', link: 'https://youtube.com/shorts/SHn1aE3dNwY?si=VdYSIlEtcugWWsWP', date: '2024-09-12'}
+                                ,{title: '(Shorts) 의문의 말투', link: 'https://youtube.com/shorts/5ujXoXvJrdA?si=ctev2M5smAom8MyC', date: '2024-09-13'}
+                                ,{title: '(Shorts) 빈털터리', link: 'https://youtube.com/shorts/if_E1AVtssU?si=vuKE_QxbQav24hwW', date: '2024-09-13'}
+                                ,{title: '(Shorts) 4D 배그', link: 'https://youtube.com/shorts/PFji9E1Mg7o?si=tZmLXnRvH0WkZOT2', date: '2024-09-14'}
+                                ,{title: '(Shorts) 호불호 확실한 편', link: 'https://youtube.com/shorts/yxdEafkguJY?si=l2ZO1cohCbtey3ZR', date: '2024-09-14'}
+                                ,{title: '(Shorts) 완만해보여요', link: 'https://youtube.com/shorts/mY70iOboJSk?si=8jSRfBTPruGTjgze', date: '2024-09-16'}
+                                ,{title: '(Shorts) 그렇죠 귀신', link: 'https://youtube.com/shorts/nmvLlKzCMXo?si=efdxJwuH3_n6WoDJ', date: '2024-09-16'}
+                                ,{title: '완전 배린이인 줄 알았던 사람의 반전ㅋㅋㅋㅋㅋ', link: 'https://youtu.be/iuqnscbfxZE?si=T0-BUfSE6f-Y0aOr', date: '2024-09-17'}
+                                ,{title: '(Shorts) 어이없을 뻔', link: 'https://youtube.com/shorts/Fecs18wuvLM?si=ObxsLQKsEHaITIkO', date: '2024-09-17'}
+                                ,{title: '(Shorts) 주객전도', link: 'https://youtube.com/shorts/JPHJJXXD_Lg?si=oxNF8Wy7jHLwwclS', date: '2024-09-17'}
+                                ,{title: '(Shorts) 배린이가 놀란 이유', link: 'https://youtube.com/shorts/D1IQ0RLibhE?si=DhKu9ciZR0Na_xoR', date: '2024-09-18'}
+                                ,{title: '(Shorts) 자유분방', link: 'https://youtube.com/shorts/BUQObxHi-VI?si=9_oeBsA6TS_0E1ep', date: '2024-09-18'}
+                                ,{title: '(Shorts) 자동반사', link: 'https://youtube.com/shorts/7WOGPnqYq7Y?si=vx5EprEo_mma1Qlo', date: '2024-09-19'}
+                                ,{title: '(Shorts) 괴로운 쿠페', link: 'https://youtube.com/shorts/gkn732f6gmI?si=-6D-4Bn4dvG4fyxr', date: '2024-09-19'}
+                                ,{title: '(Shorts) 배그하면서 배우는 발음할 때 꿀팁', link: 'https://youtube.com/shorts/HVWGdaFTsdQ?si=1_ODfJkukaenvANM', date: '2024-09-27'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/xjwtcH1h4lvbhV9hWq7FZ4g2yYLHwSkS4bZGbRcebN--ZShnaEyUaoOG1-k2x1wVy-TE0RoTBf8GvNv9qytMeG5QP54WVu3-_61b0QpUKxkgu87YoSncDlVSVmT_xnTAwzyQm__JCXiMpaFlRWg9Lw.webp" alt="배틀그라운드">
+                            <span class="game-title">배틀그라운드 (PUBG: BATTLEGROUNDS)</span>
+                        </li>
+                        <li data-title="배틀그라운드"
+                            onclick="showVideo([
+                                {title: '배그 시참을 하다가', link: 'https://youtu.be/tGU38PIZvPc?si=cQwJhVKkpUN9sLla', date: '2023-05-27'}
+                                ,{title: '(Shorts) 입만 살아있는 사람', link: 'https://youtube.com/shorts/v27BLD8fSfs?si=uF9rUIDu9IiSiCmJ', date: '2023-06-27'}
+                                ,{title: '쫄 뉴비듀오의 치킨 먹기 대작전', link: 'https://youtu.be/j8qMIL0UEQ8?si=wiPpnh3YFcnkDZul', date: '2023-07-07'}
+                                ,{title: '(Shorts) 곡예 운전', link: 'https://youtube.com/shorts/MA1J3rVEKZU?si=oFMRdg0dEPZqTapr', date: '2024-09-30'}
+                                ,{title: '(Shorts) 일보후퇴 작전실패', link: 'https://youtube.com/shorts/E8mTs_Ym_gY?si=RRewQOraG6zYs-Il', date: '2024-10-02'}
+                                ,{title: '(Shorts) 긴가민가 헤엄', link: 'https://youtube.com/shorts/oizFE0HZA7s?si=IlgdObprWlln3Wzi', date: '2024-10-13'}
+                                ,{title: '(Shorts) 기적의 시야', link: 'https://youtube.com/shorts/EqV2VZfA-0Y?si=Odvfqf_S3RzgDoti', date: '2024-10-14'}
+                                ,{title: '(Shorts) 수류탄의 쓰임', link: 'https://youtube.com/shorts/s5rfDCYs-mw?si=Q5PHEIhDEtR_K-q-', date: '2024-10-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/xjwtcH1h4lvbhV9hWq7FZ4g2yYLHwSkS4bZGbRcebN--ZShnaEyUaoOG1-k2x1wVy-TE0RoTBf8GvNv9qytMeG5QP54WVu3-_61b0QpUKxkgu87YoSncDlVSVmT_xnTAwzyQm__JCXiMpaFlRWg9Lw.webp" alt="배틀그라운드">
+                            <span class="game-title">배틀그라운드 (카카오 배틀그라운드)</span>
+                        </li>
+                        <li data-title="오버워치 2"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/fwMNU-xFAIR_njrPBZkrrKAsccZ_-EYhe1-hMt5oxi1jVEritohqTG3lhpyv7rLbu2LHo0XZNWCf5DsRkxjPSjZoN-oEhazEDArlLM9KRs8UBAqvS5Vu12K_8XUMO7lmqws1PhW3u1eYcyhORxawzg.webp" alt="오버워치 2">
+                            <span class="game-title">오버워치 2 (Overwatch 2)</span>
+                        </li>
+                        <li data-title="페이데이 2"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/PXitjSDJnPiBlb37_KoZTUiGeS0SevAUWyNCrr8YFdT5pUP3Oymw65XfIE6PSrJc8I_fyA9aXz5jh6KRX7hphai5mP4g7Asfv66xGe6zMBueA2oIWfEBR8uJsX-N_M7TZqQuZbYka-229lLRyYwUew.webp" alt="페이데이 2">
+                            <span class="game-title">페이데이 2 (PAYDAY 2)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('vrGames')">
+                    3. VR 게임
+                    <span class="toggle-icon" id="vrToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="vrCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="vrGames">
+                    <ul class="game-list">
+                        <li data-title="백룸 (VR)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/WcCGBXh43pOHlq2Q95Oq-EiNc5fFOKia-jBkhkyEUQPm5t8dmnKnnKWCpLqrthXnwQjZ6qhaw1OyGKGYeKdCtnX1ugyGngj9UAdYOZnIb7Ufnb76j0mh6H3OxAOZ0J5P7qlziYDTEm3Lac0IkjgD_g.webp" alt="백룸 (VR)">
+                            <span class="game-title">백룸 (VR)</span>
+                        </li>
+                        <li data-title="우노 (VR)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/0bm4LpG9kLkmT1_8Lve7FaugV2qBUTTcNFfS5EcC0b9xhVb54MTXWurxoDygqF9ShGj0-WWpfRUXtQBCcVakwqsvcgw86zKj6zezxIlBI7ESb7_rhEp77r_SocSwRKKT8Lv43rk4Gt0OL1J7SggLWg.webp" alt="우노 (VR)">
+                            <span class="game-title">우노 (VR)</span>
+                        </li>
+                    <ul class="game-list">
+                        <li data-title="윷놀이 (VR)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/atToBhLNO_P8pPJdm2Il9ZGXw8O_uh9O4alA-MhMLY0BwpOwgY9kV-ab4ezxdfwODMBnUObjDYuwfw1wNqjH5Yj-QMIgEHXIOdIY7UTKk7HT-mM6GifizgoZVPYYY_GMGJAb6m3SEudIROrIJV0zvQ.webp" alt="윷놀이 (VR)">
+                            <span class="game-title">윷놀이 (VR)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('racingGames')">
+                    4. 레이싱 / 스피드 게임
+                    <span class="toggle-icon" id="racingToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="racingCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="racingGames">
+                    <ul class="game-list">
+                        <li data-title="니드 포 스피드: 언바운드"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/uMG60B_vwLXzAca0ny3GA46EZBgpVbSnQTv4d8ZITzOXDBm20IEFWcLWR9_Y5BdOYKogVjq_2F64NsbEZlxNCr2ryCMnb5ZsHD_kvmZq7oHNJ1QVSFuvLXGtCX85lmVn1hhhMyT_JwG8XfMf1O3hRg.webp" alt="니드 포 스피드: 언바운드">
+                            <span class="game-title">니드 포 스피드: 언바운드 (Need for Speed™ Unbound)</span>
+                        </li>
+                        <li data-title="드라이브 업"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2601740/header.jpg?t=1720791117" alt="드라이브 업">
+                            <span class="game-title">드라이브 업 (Drive Up)</span>
+                        </li>
+                        <li data-title="젤리 카 월드 (Jelly Car Worlds)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/UOUVDfSjlW1N0s1vaxHEiNMiMoI-HYCei736Tt2ZIw6zprPoD73wd-RJTdAMZpLhtqaklefrczuUYK0N2ZbeIBF9wdKFxzrpbYfXNeEMhZl_88YTO3_zUBauCbkvqZDCP_B3qaatu57uRbayhHXXKQ.webp" alt="젤리 카 월드 (Jelly Car Worlds)">
+                            <span class="game-title">젤리 카 월드 (Jelly Car Worlds)</span>
+                        </li>
+                        <li data-title="카트라이더: 드리프트 (KartRider: Drift)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 이상한 해설', link: 'https://youtube.com/shorts/7s98Qlwv7aA?si=8ARoBSt6HNB2xyP_', date: '2024-03-02'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/BKRJZHv7rbub5Yu9ejWycci3VYamDlShd7qiD4V5n5gC5QQfD8KzClOV4BNsOTKlLyTP-F_75b0uQNXSPI_bp1SWAbNW0itrjXUJNzc5FRNzUes6nc4lUaxNSP--jF8g70GWVPppsmPtNJzHbuACEw.webp" alt="카트라이더: 드리프트 (KartRider: Drift)">
+                            <span class="game-title">카트라이더: 드리프트 (KartRider: Drift)</span>
+                        </li>
+                        <li data-title="핫샷 레이싱 (Hotshot Racing)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 막판스퍼트 #shorts', link: 'https://youtube.com/shorts/EKSwEtCMwaI?si=6EkeeVemSBZA0j4U', date: '2023-05-29'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/609920/header.jpg?t=1634666816" alt="핫샷 레이싱 (Hotshot Racing)">
+                            <span class="game-title">핫샷 레이싱 (Hotshot Racing)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('multiGames')">
+                    5. 멀티플레이 / 파티 게임
+                    <span class="toggle-icon" id="multiToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="multiCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="multiGames">
+                    <ul class="game-list">
+                        <li data-title="GTA5 (Grand Theft Auto V)"
+                            onclick="showVideo([
+                                {title: '[GTA5] 운전이 처음이라.. 오픈카 오히려 좋아 (스토리모드)', link: 'https://youtu.be/oKQB8v8XBho?si=Bxjv5Yc9VSGyV-EG', date: '2023-11-05'}
+                                ,{title: '[GTA5] 사람이 날아다녀요 (스토리 모드)', link: 'https://youtu.be/QT_mhXlPyTM?si=nTm4pST5aME0xnh5', date: '2023-11-16'}
+                                ,{title: '레전드 오토바이 무한의 굴레 (GTA 온라인)', link: 'https://youtu.be/wEv3Sp6QsXY?si=sktPgBT1P6wYMwW2', date: '2023-12-14'}
+                                ,{title: '(Shorts) 환승', link: 'https://youtube.com/shorts/OWw5xmUvkd4?si=9IDif7PEjvY2coe8', date: '2023-12-14'}
+                                ,{title: '(Shorts) 내 머릿속의 지우개', link: 'https://youtube.com/shorts/WRc9SjrkSKc?si=u8O8qCethPi9Fyxj', date: '2023-12-14'}
+                                ,{title: '(Shorts) 맨손', link: 'https://youtube.com/shorts/0tUMlnvbbwA?si=EVJXfPQ_Qh67c7iE', date: '2023-12-14'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/wMhv9z-wl7nPEaCyilLEq94Q2cHVeNQYXL0jsYcqURZjEvgDejeFRpZxnMGwUWYol5MAFuzYGifHnWndt6GbHNTzUhf9k_5THiNCo1aAQUT4_B5IN8pDpvMItReHVqFxoUs9rWz2gjuwIyhrJQNl6g.webp" alt="GTA5 (Grand Theft Auto V)">
+                            <span class="game-title">GTA5 (Grand Theft Auto V)</span>
+                        </li>
+                        <li data-title="갱비스트 (Gang Beasts)"
+                            onclick="showVideo([
+                                {title: '[갱비스트] 스트리머 담당 일진에 상어까지 대환장 콜라보', link: 'https://youtu.be/DBTHQEX_Cik?si=Xzkf-IJWbTx_ACo6', date: '2023-09-22'}
+                                ,{title: '(Shorts) 예의 박치기', link: 'https://youtube.com/shorts/AFEz3gJP08M?si=mYFI75KGUhWMQELM', date: '2023-10-02'}
+                                ,{title: '(Shorts) 평화로운 싸움', link: 'https://youtube.com/shorts/iHIy5KL8CgU?si=6OWvy8TuSV_WXZDP', date: '2023-10-04'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/UOjgKWHaZQ2VAQdhS82CwbQndojcEWilX7eHtPc476XBkibVvo3BFN3w9o6YCHzdeH9WwpwKaHzj5jiAGXzi3IAvspnHwfP_Vrd03PtYpVasZC5tdEGSrDn03oDXuWrFEjQ1ryr1vqsaC2uZqz8WNQ.webp" alt="갱비스트 (Gang Beasts)">
+                            <span class="game-title">갱비스트 (Gang Beasts)</span>
+                        </li>
+                        <li data-title="몬스터 헌터 월드 (Monster Hunter: World)"
+                            onclick="showVideo([
+                                {title: '[Monster Hunter World] 늦게 알아서 미안하다.. 너무 재밌어서 놀란 게임', link: 'https://youtu.be/_ebzznfdWTs?si=TWdIgdD8D5mm6Tev', date: '2023-09-25'}
+                                ,{title: '[Monster Hunter World] 길치 고생 끝에 귀여운 몬스터가 온다', link: 'https://youtu.be/JbA2lTMIeKw?si=lKx_zGB1pqkwtTK3', date: '2023-09-30'}
+                                ,{title: '[Monster Hunter World] 내 두 눈을 바라봐!! 즐기는 자가 일류다.', link: 'https://youtu.be/5Exaj7LTVjA?si=FZ6u0g7zUkqhHlX_', date: '2023-10-10'}
+                                ,{title: '[Monster Hunter World] 입에 모터 달린 헌터를 찾으셨나요?', link: 'https://youtu.be/extvm4lcCCo?si=Tw6UrKCSf3Tuc3Kq', date: '2023-10-16'}
+                                ,{title: '[Monster Hunter World] 대검만 쓰던 몬린이가 태도를 배우면?', link: 'https://youtu.be/68Wctrdvs2E?si=DPIwxlbkMmf8-ufo', date: '2023-11-01'}
+                                ,{title: '[Monster Hunter World] 보고 싶을 거야 너란 몬스터', link: 'https://youtu.be/BDxzuc8ATyI?si=5ztYKN1KqLwD9vIa', date: '2023-11-09'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/rU7HrfpgPsPq6p5WhF_V87fQ3-MYc197Ooseyt8dxJluVzsE7WkbOcx6fGGESb0umGZge2XuT-3A1TF4qgwF7GS5uNOq0OtW2jzuVFmFqIeTlHQVZLWpBydsDRGMryU_sqEsXnh7O9tW5QxtOlteLg.webp" alt="몬스터 헌터 월드 (Monster Hunter: World)">
+                            <span class="game-title">몬스터 헌터 월드 (Monster Hunter: World)</span>
+                        </li>
+                        <li data-title="슈퍼 애니멀 로얄 (Super Animal Royale)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/c8_Jr8LkOfyynyL3aHb_x7AUalP1Iwu1AniYoyUjgMXt4gFnSRsArdUW1hionJCb1QC0lMewewNSUiYV9RiuZZT_-Y-VQ4Z8y35zFIQKZSqcuYJ9lkno7F9648S9k9L1Z6n0ggYAA8Y05bVtOqpwtA.webp" alt="슈퍼 애니멀 로얄 (Super Animal Royale)">
+                            <span class="game-title">슈퍼 애니멀 로얄 (Super Animal Royale)</span>
+                        </li>
+                        <li data-title="얼티밋 치킨 호스 (Ultimate Chicken Horse)"
+                            onclick="showVideo([
+                                {title: '[얼티밋 치킨 호스] 갈까 말까 갈까 말까 갈까', link: 'https://youtu.be/3LP2oFhQ7Dg?si=2N0Uxb5gBPR7qdwf', date: '2023-09-17'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/386940/header.jpg?t=1725897577" alt="얼티밋 치킨 호스 (Ultimate Chicken Horse)">
+                            <span class="game-title">얼티밋 치킨 호스 (Ultimate Chicken Horse)</span>
+                        </li>
+                        <li data-title="Chained Together(체인드 투게더)"
+                            onclick="showVideo([
+                                {title: '죽음의 사슬 온리업', link: 'https://youtu.be/Q0qfsi9TcUI?si=kTnKuGN8QWTwKP3k', date: '2024-07-06'}
+                                ,{title: '(Shorts) 진짜 잠수한 사람 찾기 #체인드투게더', link: 'https://youtube.com/shorts/xE8S77aOdWQ?si=j3pHpTP1FtXP-jY9', date: '2024-07-06'}
+                                ,{title: '(Shorts) 띵띵땅땅', link: 'https://youtube.com/shorts/EqdQmrwL2GY?si=NtP9roz8Bb0USC-Q', date: '2024-07-06'}
+                                ,{title: '(Shorts) 엘베귀신 #체인드투게더', link: 'https://youtube.com/shorts/bq27EzO7rLo?si=bChCMRk0JajMArwc', date: '2024-07-06'}
+                                ,{title: '(Shorts) 기괴한 사다리 #체인드투게더', link: 'https://youtube.com/shorts/IuHYUOTxkQ8?si=rusY1oFKMxnFFKPE', date: '2024-07-07'}
+                                ,{title: '(Shorts) 쫀쪼니 #체인드투게더', link: 'https://youtube.com/shorts/scaCQ9ntgCk?si=AcTKzI4351B6kqK2', date: '2024-07-07'}
+                                ,{title: '(Shorts) 철조망 꿀팁 #체인드투게더', link: 'https://youtube.com/shorts/y3wth8M8vJs?si=xeM3ZUJU4a-JHDxb', date: '2024-07-07'}
+                                ,{title: '(Shorts) 갑자기 차력쇼 #체인드투게더', link: 'https://youtube.com/shorts/92cVjISLXgo?si=PEY9Om54qidURu2B', date: '2024-07-07'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2567870/header.jpg?t=1725986873" alt="Chained Together(체인드 투게더)">
+                            <span class="game-title">Chained Together(체인드 투게더)</span>
+                        </li>
+                        <li data-title="콘텐트 워닝 (Content Warning)"
+                            onclick="showVideo([
+                                {title: '제2의 리썰컴퍼니? 시청자 수를 올려라! 죽음도 마다 않는 사람들의 폐허 브이로그', link: 'https://youtu.be/G1rRYs3StrE?si=XhaU2wVqWAIiVFYZ', date: '2024-04-15'}
+                                ,{title: '(Shorts) 한 명씩 죽어나가요', link: 'https://youtube.com/shorts/gFUGpaG6V7s?si=YpWjRyNGpkov4Mgo', date: '2024-04-15'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/1uud5hwL8mM1wLHveVkBeHxvHT95HPq-PvzPk2tg0rRSYjwaN7vWUjlYGUwSankBqqfDGJOiImo0nbgDi3hcY1B8VZuN8Dch2nOWrabl7RPqEZNqmAZaxXXfgWGtz9Fx05gbXVpijKPGn_76Z2pcdw.webp" alt="콘텐트 워닝 (Content Warning)">
+                            <span class="game-title">콘텐트 워닝 (Content Warning)</span>
+                        </li>
+                        <li data-title="쿠코로 (Kukoro: Stream chat games)"
+                            onclick="showVideo([
+                                {title: '[Kukoro] 이 사람 투옥시킬까요? (시청자 채팅 참여 게임)', link: 'https://youtu.be/cIaQZNfHRE4?si=1G_sg4jZat3lbWXf', date: '2023-10-21'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1166990/header.jpg?t=1710951449" alt="쿠코로 (Kukoro: Stream chat games)">
+                            <span class="game-title">쿠코로 (Kukoro: Stream chat games)</span>
+                        </li>
+                        <li data-title="트리키 타워 (Tricky Towers)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://i.namu.wiki/i/9AC2le4exGeOvVOG6KrNoNvJbpNSQrN984gJZyS6JMpGkwet5v0lMgbpavddcVJjmVcanEVue_X0ZOOuCnXKBM1AMmriRD-1b9pCgpGkvy5gUwJ-qciokYTpUcB_SXH0N5GC1ahChf7GAFvNrSIhiQ.webp" alt="트리키 타워 (Tricky Towers)">
+                            <span class="game-title">트리키 타워 (Tricky Towers)</span>                            
+                        </li>
+                        <li data-title="파티애니멀즈 (Party Animals)"
+                            onclick="showVideo([
+                                {title: '[파티 애니멀즈] 맑은 눈의 광인 제대로 모시겠습니다. 본격 난투극 게임', link: 'https://youtu.be/ptZY8JPMQ00?si=L0mQeiirqF937AD2', date: '2023-10-15'}
+                                ,{title: '(Shorts) 카피바락', link: 'https://youtube.com/shorts/XvejUvB9WnU?si=aO2GJ150MFyzqKk2', date: '2024-03-18'}
+                                ,{title: '(Shorts) 장난하키?', link: 'https://youtube.com/shorts/OaWryqQ004c?si=aPnBNoBz-SPZGYnu', date: '2024-03-19'}
+                                ,{title: '(Shorts) 가장 즐기고 있는 사람은?', link: 'https://youtube.com/shorts/-2rxapbrcPc?si=wqf4COsBe4AzeSr1', date: '2024-03-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/MecTC1rAyu5rWfh0dzff8QKeKap_NuYRIEb1Vz_CQHXRvDstYaNcg3BsWFPbwCuq6xaOvC4jeEf9j5UAQO-MHLsxH-YHgPntcDkybvk6Sd1ad08hdtrBVRaXm_ag4KzPLShcsIrXwWtAFc248Q_vuw.webp" alt="파티애니멀즈 (Party Animals)">
+                            <span class="game-title">파티애니멀즈 (Party Animals)</span>
+                        </li>
+                        <li data-title="팰월드 (Palworld)"
+                            onclick="showVideo([
+                                {title: '깜찍 몬스터 사냥! 시간 살살 녹는다', link: 'https://youtu.be/4lt9C4TG1v0?si=2MS6hjVyNaHSdAy-', date: '2024-01-23'}
+                                ,{title: '(Shorts) 파이어 인간', link: 'https://youtube.com/shorts/q4j9NFootnY?si=Le_8WmtR35g52jZX', date: '2024-01-23'}
+                                ,{title: '(Shorts) 곡괭이 주사', link: 'https://youtube.com/shorts/KkpklyycGp8?si=k3UoQwP1rrv1nNDz', date: '2024-01-23'}
+                                ,{title: '(Shorts) 0.8초', link: 'https://youtube.com/shorts/yqFB5UCmjV8?si=ujFyZrVYSwzWASAg', date: '2024-01-24'}
+                                ,{title: '(Shorts) 모험 정신', link: 'https://youtube.com/shorts/6qIV6LZVvzY?si=5e34ysD7-BZjvrGE', date: '2024-01-26'}
+                                ,{title: '(Shorts) 내가 미안하다', link: 'https://youtube.com/shorts/upVfilaoBSU?si=GZOVmBbXm6lz01Vl', date: '2024-01-27'}
+                                ,{title: '(Shorts) 남탓', link: 'https://youtube.com/shorts/XUmwi24GLGc?si=00P88Oc6Yrd0Legu', date: '2024-01-29'}
+                                ,{title: '(Shorts) 잘못된 친절', link: 'https://youtube.com/shorts/eYNkxKXJNCc?si=F6KsTttCBw2BeAK6', date: '2024-02-03'}
+                                ,{title: '(Shorts) 파괴의 신', link: 'https://youtube.com/shorts/qpIWOPzy2Xs?si=6OyxU-WthTwvqiye', date: '2024-02-11'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/7utF63BMiRPAz3mRat3kSc1mHLHw4d6HW4qx5p6hey-b0x7y-NLCWMbhM-njzt1_X8LnB_57SB10Mu92rEHHyQbAbHQ1NF_SIRCjSIz78-vDbWYzd5ComD4DVI0K1GXmfKr2or2ASgZhK0daWNbEzA.webp" alt="팰월드 (Palworld)">
+                            <span class="game-title">팰월드 (Palworld)</span>
+                        </li>
+                        <li data-title="페더 파티 (Feather Party)"
+                            onclick="showVideo([
+                                {title: '짧은 다리의 역습', link: 'https://youtu.be/rQnM4Zb_QOI?si=CdkC-kBvC3qtouzD', date: '2024-08-12'}
+                                ,{title: '(Shorts) 무소유', link: 'https://youtube.com/shorts/1GABR4QFAK0?si=tpQ50foeNjFtXmCb', date: '2024-08-12'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2300230/header.jpg?t=1726420057" alt="페더 파티 (Feather Party)">
+                            <span class="game-title">페더 파티 (Feather Party)</span>
+                        </li>
+                        <li data-title="폴가이즈 (Fall Guys)"
+                            onclick="showVideo([
+                                {title: '[폴가이즈] 초심자의 행운 무섭다', link: 'https://youtu.be/poUFQxQwtTI?si=PCKQlN6PGt8pvaHj', date: '2023-04-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/-d0FvYgYyb24HnIsrEAhR6utouiPdP4sSd3hCAzk3xUSk50ArGrlPAqyFGX_dRdc6AIRJNZ80vHU6pQEezscr3i_jcMhZgJl9dJfQa2gifHW01I_HsWmo5rpxWB5yLPy3Ei6_fzDbhxbKhI53ioBXg.webp" alt="폴가이즈 (Fall Guys)">
+                            <span class="game-title">폴가이즈 (Fall Guys)</span>
+                        </li>
+                        <li data-title="품멜 파티 (Pummel Party)"
+                            onclick="showVideo([
+                                {title: '익숙한 맛의 미니 게임들 다 모였다', link: 'https://youtu.be/SKr3ZCqXlvU?si=_RQvFfIodenFy2Qw', date: '2024-01-01'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/AxtR5NSWSAZgTmCVlIqQEdArDBItnQeuri8DuIHzydQvpYrNex4J7KwORzoSqBGj1Zu_Fg4JJ1XVdNItV2vtK8q_embpDDVgXPAuornItGgk42YBma7F-z9Ku929XIZormYRECLC4oPgKVOck0rbZw.webp" alt="품멜 파티 (Pummel Party)">
+                            <span class="game-title">품멜 파티 (Pummel Party)</span>
+                        </li>
+                        <li data-title="피코 파크 (PICO PARK)"
+                            onclick="showVideo([
+                                {title: '[피코파크] 제발 그것만은', link: 'https://youtu.be/iXyYHDlJb-c?si=07wjb2IM8xC2K93L', date: '2023-09-19'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Hyh64t6X02KZZJexCd8JNRZRVz6uWgbsmfdwPcdCCoyN0U4ClTSyP1PJq3Cwxm_VmM94EDrO6LV_xW6qPxwwkYcZGC1QefOYmi6V2LLCAtfS2ldwPf_SLUodKODXjNZxSz0EeK7ttNmYQ5u8kXlfcQ.webp" alt="피코 파크 (PICO PARK)">
+                            <span class="game-title">피코 파크 (PICO PARK)</span>
+                        </li>
+                        <li data-title="피코 파크 2 (PICO PARK 2)"
+                            onclick="showVideo([
+                                {title: '조별과제 죽겠어요', link: 'https://youtu.be/YyUfFLyZrPg?si=Web4BygiBuzujYKK', date: '2024-09-14'}
+                                ,{title: '(Shorts) 무궁화 꽃이 피었습니다', link: 'https://youtube.com/shorts/s84SKj6zgk8?si=rtWAY9IJ0G41wzlj', date: '2024-09-15'}
+                                ,{title: '(Shorts) 자신만만', link: 'https://youtube.com/shorts/tQOqsTLAYb4?si=IZnVs12Gupq3_LkA', date: '2024-09-15'}
+                                ,{title: '(Shorts) 주의사항', link: 'https://youtube.com/shorts/bLyTGuD5KL4?si=Uqr6vCN42rI2Na3R', date: '2024-09-15'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/qbBj2I2lDlJ9CRAJAHPkhEakmgNWYSHTpiJnlt5KRb6Hx2emFjpyDW52SGmSljxtqBtZV91EcbjkOj5Jh0OPtd7bUi22Rm-M0pc-D7htnC8OJJt3qQMMvNL9PJ0Zf6oMRGTaaCHUwL3iVLy8G4bpDw.webp" alt="피코 파크 2 (PICO PARK 2)">
+                            <span class="game-title">피코 파크 2 (PICO PARK 2)</span>
+                        </li>
+                        <li data-title="휴먼: 폴 플랫 (Human Fall Flat)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 수난 시대', link: 'https://youtube.com/shorts/SAm3r7CqfbU?si=YNuSdFU5lYC6ppng', date: '2024-02-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/1nAjAcYVGTtC_IeBD4KKdtqNSy3MHYWWt_VF1Yrx1DqJn9pNO-LYsQKPQDHC8owZAzZub5S413ZheyAROBz45CDIw5mU03yanY1z_gOTxNx5J4ppCTUAHl44QgQ40z_KMxARbASgaQuSpjdDzAVC_A.webp" alt="휴먼: 폴 플랫 (Human Fall Flat)">
+                            <span class="game-title">휴먼: 폴 플랫 (Human Fall Flat)</span>                            
+                        </li>
+
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('sandboxGames')">
+                    6. 샌드박스 / 시뮬레이션 RPG
+                    <span class="toggle-icon" id="sandboxToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="sandboxCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="sandboxGames">
+                    <ul class="game-list">
+                        <li data-title="스타듀 밸리 (Stardew Valley)"
+                            onclick="showVideo([
+                                {title: '[스타듀밸리] 문순이 탈진하는 것이 일상입니다', link: 'https://youtu.be/IkJuh_SewwQ?si=2iRUfYD6UO6pLs_z', date: '2023-06-01'}
+                                ,{title: '[스타듀밸리] 다시 돌아온 문순이! 달걀 축제를 가요~', link: 'https://youtu.be/ZpmMfKMXccM?si=pSPtsQyKwvCMCNJ8', date: '2023-08-05'}
+                                ,{title: '[스타듀밸리] 사랑하기 딱 좋은 계절🌸 창조손해 힐링게임', link: 'https://youtu.be/dnvvXZ0mN-A?si=NgmeJx2AxuPJBp7p', date: '2023-09-14'}
+                                ,{title: '(Shorts) 쓰레기', link: 'https://youtube.com/shorts/0WzsFWdn0Eg?si=y63ilqf5x_5sjGIr', date: '2023-09-14'}
+                                ,{title: '(Shorts) 있었는데 없었습니다', link: 'https://youtube.com/shorts/3wtrxBeDfsU?si=rScpEawQmoKN9O-W', date: '2023-09-15'}
+                                ,{title: '(Shorts) 조준 실패', link: 'https://youtube.com/shorts/6lTjAjPlHgc?si=IY_qg7lVQMiDLLhr', date: '2023-09-15'}
+                                ,{title: '(Shorts) 슬픈 외침', link: 'https://youtube.com/shorts/p9AwMYIOW60?si=1bkmFjQCdzpi1LFQ', date: '2023-09-16'}
+                                ,{title: '(Shorts) 플렉스 손해', link: 'https://youtube.com/shorts/FzAb49kWbvc?si=0K-aGt0-_4xFcuGF', date: '2023-09-16'}
+                                ,{title: '(Shorts) 뭐가 들렸나?', link: 'https://youtube.com/shorts/ECOeVMKRzMc?si=4EhDE8FLGJ_9ItyB', date: '2024-02-24'}
+                                ,{title: '(Shorts) 드워프 언어', link: 'https://youtube.com/shorts/IpXiwO_GX9I?si=Z5tYAwDm7x4_ADck', date: '2024-02-24'}
+                                ,{title: '(Shorts) T덤덤', link: 'https://youtube.com/shorts/igVPZAPSK6I?si=PcEK5XfTGvdiWgDH', date: '2024-02-24'}
+                                ,{title: '(Shorts) 현실 고증', link: 'https://youtube.com/shorts/y4kdjRiEPJ4?si=Yb92I5XWMW__3vJu', date: '2024-03-09'}
+                                ,{title: '(Shorts) 맞아요^^', link: 'https://youtube.com/shorts/eP9S4gQDWg8?si=TXBlb_gbBE8201RV', date: '2024-03-10'}
+                                ,{title: '(Shorts) 저리가', link: 'https://youtube.com/shorts/RLfliUrjRwI?si=0Lc781Lv4qniLaRI', date: '2024-03-10'}
+                                ,{title: '(Shorts) 보긴 봤는데', link: 'https://youtube.com/shorts/CEFkanXIMXI?si=HxYgCo0bIYPVhoSz', date: '2024-03-10'}
+                                ,{title: '(Shorts) 불편한 하트', link: 'https://youtube.com/shorts/x5MJgo8cQ-w?si=lClM-SN35CCIdEpj', date: '2024-03-23'}
+                                ,{title: '(Shorts) 크고, 부드럽고', link: 'https://youtube.com/shorts/5S5n6PqC08U?si=_IC4wdJFTTqYCl8i', date: '2024-03-28'}
+                                ,{title: '(Shorts) 상태 보고', link: 'https://youtube.com/shorts/aGCsCl_daBs?si=lDpejhK6GOM-U7u7', date: '2024-03-29'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/BSYhAlutVRFGku2Z2NRCbA0mVx1__OwvYn2Ims4sOXMB8E3u0nFnEnRgi8dIPx0o3zTP-pjbQQKm_lsFmIYJANUefD44PcbUyyaC9rv4CXhM6x-dMiLWWSuRRi7xFVxUoPkVIDy2F2nYYwsSuajB7A.webp" alt="스타듀 밸리 (Stardew Valley)">
+                            <span class="game-title">스타듀 밸리 (Stardew Valley)</span>
+                        </li>
+                        <li data-title="심즈 4 (The Sims™ 4)"
+                            onclick="showVideo([
+                                {title: '[심즈4] 금쪽이는 오늘도 살아갑니다 (심즈 예능)', link: 'https://youtu.be/6mELFw4t4DI?si=wpT_eUCm9oil4sqC', date: '2023-04-26'}
+                                ,{title: '모든 것은 속전속결! 심즈와 즐기는 연말 파티🎄', link: 'https://youtu.be/M6IU56BY2TM?si=hcY2j5Ra6Tcpoopf', date: '2023-12-26'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/8EBTpbRzIEZvG8inVa2Da_Q8KQTHYiR0Jh2mjC1oJTY8QLrY2NqXTAOQvqg9DISwhMgHEAm-CpbPECXsGR-8GyCKG_GDsJR5Lv1vgOyv1eW7uPqkTots-nXfyueYJjhTnixvf7m2smjh0C3Xs4mC8Q.webp" alt="심즈 4 (The Sims™ 4)">
+                            <span class="game-title">심즈 4 (The Sims™ 4)</span>
+                        </li>
+                        <li data-title="코어키퍼 (Core Keeper)"
+                            onclick="showVideo([
+                                {title: '왜 재밌지? 땅속에서 생존하는 게임', link: 'https://youtu.be/aPA9_nEs2ok?si=KUIN4eEtrcQze-Lb', date: '2024-09-04'}
+                                ,{title: '이런 양파같은 게임을 봤나 (※7시간 순삭)', link: 'https://youtu.be/Ny6YfjlgRp4?si=Dspx_R93x0rZXN6p', date: '2024-09-05'}
+                                ,{title: '급기야 잠을 포기한 중독성 미친 게임', link: 'https://youtu.be/4sA0NnIRdeA?si=f_mG9DblqXnhOI_L', date: '2024-09-06'}
+                                ,{title: '다 벗겨졌네.. 최종 보스 앞에선 나도 자연인', link: 'https://youtu.be/WCWXVfuiNr4?si=h6XWEPTPkhySV2iB', date: '2024-09-08'}
+                                ,{title: '(Shorts) 뉴비의 25시간 집꾸미기', link: 'https://youtube.com/shorts/XVnnKBx7pVY?si=gVj0r8m4lHjUN1kM', date: '2024-10-01'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/fvyek68OziiyEFPPoYKxhI8VfxzgRMWsSHM40ECt1S9ctKhDqQUyrlF4wXjn37mfCi3BqnwBsvRph-cpDhaH0sv7EWFHXfa9RwvbRyrmCZ54p6AG7Drn1Eu2NE61d7KyDud6G4bFj4yVawSNsX0j6g.webp" alt="코어키퍼 (Core Keeper)">
+                            <span class="game-title">코어키퍼 (Core Keeper)</span>
+                        </li>
+                        <li data-title="호코 라이프 (Hokko Life)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/824000/header.jpg?t=1726585625" alt="호코 라이프 (Hokko Life)">
+                            <span class="game-title">호코 라이프 (Hokko Life)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('survivalGames')">
+                    7. 생존 / 서바이벌 게임
+                    <span class="toggle-icon" id="survivalToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="survivalCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="survivalGames">
+                    <ul class="game-list">
+                        <li data-title="더 포레스트 (The Forest)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/niipqC-8oa72-FumQdmjeon0ub6_1UR9BB_DKbqwRMFA4WwN_uyxoOQKH7TYfpQ2FFXR0VQOYDucmD-Jfp3-6MGkb6v_EJdoyURQoJSrdVORzfRjDhoVJlmelkZKacHuKPdVTICPj4w372LufmrqpQ.webp" alt="더 포레스트 (The Forest)">
+                            <span class="game-title">더 포레스트 (The Forest)</span>
+                        </li>
+                        <li data-title="돈 스타브 투게더 (Don't Starve Together)"
+                            onclick="showVideo([
+                                {title: '[Dont Starve Together] 죽을 때까지 쫓아오는 그들, N번째 환생 중', link: 'https://youtu.be/A7FpkXljeWU?si=4WRM2Z2MB5KHlnVs', date: '2023-05-18'}
+                                ,{title: '[Dont Starve Together] 너 내 동료가 돼라', link: 'https://youtu.be/ugLTjdTA8aA?si=tTd742s6EPb2TMx0', date: '2023-08-15'}
+                                ,{title: '[Dont Starve Together] 사랑과 전쟁, 물만 떠오는 동반자', link: 'https://youtu.be/tfoORJ4IEdU?si=7My7i-CwFWgM65nw', date: '2023-08-31'}
+                                ,{title: '내가 거미와 친구라니(개꿀)', link: 'https://youtu.be/2Le47yqGaEw?si=bpGnvP-0K9oS6JVY', date: '2024-08-31'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Pvt6yHhPRc-mXW4A72P1u5aa3FXwS8xAZ-aGSNtVzir7wgMrVF0MuNx-4jC1YyXLLwlfI7MMrreIAvlaXsWJ5cAbqxdX6HlnJpegND3I1Mou9yjR0a5p5PILRm7MR9KU2KVTMR072sB9XV9RCGOk9g.webp" alt="돈 스타브 투게더 (Don't Starve Together)">
+                            <span class="game-title">돈 스타브 투게더 (Don't Starve Together)</span>
+                        </li>
+                        <li data-title="래프트 (Raft)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 너 납치된 거야', link: 'https://youtube.com/shorts/_CudmH6L_ZA?si=e8rDvO_5Z6lgGU7I', date: '2024-02-10'}
+                                ,{title: '(Shorts) 음료 마술쇼', link: 'https://youtube.com/shorts/EXiJa4CyHyE?si=HDEocdO6INiEMjp2', date: '2024-02-10'}
+                                ,{title: '(Shorts) 얄미운 달인', link: 'https://youtube.com/shorts/opnRtGITo3w?si=Z_DG5GP-VgTviuYf', date: '2024-02-10'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/DsNCZrk_dr93Tb4buzEKM2oUP51tUz7aQzRLQGndRLUKZWUdgzPe03NW17mNsLVJC7Cv_kKhya-VUkX-9oIpUAn7NFcS6OQLlZehsNnfk43EOdX9Byp7_UaHRmGSEiEg3DXLggwki2Jy0iUtf5h54A.webp" alt="래프트 (Raft)">
+                            <span class="game-title">래프트 (Raft)</span>
+                        </li>
+                        <li data-title="리썰컴퍼니 (Lethal Company)"
+                            onclick="showVideo([
+                                {title: '혼자 다른 공포를 느끼는 중ㅋㅋㅋㅋ 죽음의 리썰 컴퍼니 4인', link: 'https://youtu.be/wsEthtDyQjU?si=wsMekd0EpJ7OXvXG', date: '2024-02-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/90iNLjvCortp4miN25KkC5C-AM99DfxbSLwl6bULEc2zlSrA3z7HtxdbxsiXsWG_xeCD2CLq1f5pZirGJhmBI8Hvjrw_qJbRFfoLEuI6buhMExvREArgAAJEynCtOhvgPL7nmmWqW6PnpOy3uupgew.webp" alt="리썰컴퍼니 (Lethal Company)">
+                            <span class="game-title">리썰컴퍼니 (Lethal Company)</span>
+                        </li>
+                        <li data-title="좀보이드 (Project Zomboid)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 또 놀래켰다가는 큰일날 기세', link: 'https://youtube.com/shorts/hXlr2QOQcss?si=qXpGpDporUgzug2Y', date: '2024-03-29'}
+                                ,{title: '(Shorts) 그러게 왜 다리에 힘이', link: 'https://youtube.com/shorts/eqBIB5k_FSs?si=4U1YT00_USxLuXFc', date: '2024-03-29'}
+                                ,{title: '(Shorts) 이자식씨', link: 'https://youtube.com/shorts/1xIlX-rdCp0?si=By3qP2Md27THVgQP', date: '2024-03-30'}
+                                ,{title: '(Shorts) 다시 태어나', link: 'https://youtube.com/shorts/LsZkrW9nT7E?si=xxy0Q3rImXRPEwiW', date: '2024-03-30'}
+                                ,{title: '(Shorts) 마음은 굴뚝같다', link: 'https://youtube.com/shorts/XwMY9J1Cvvo?si=NkYO9nA1m_lUNZW8', date: '2024-03-30'}
+                                ,{title: '(Shorts) 소통의 대가', link: 'https://youtube.com/shorts/c9aNRlmIhf0?si=nqptRRdBfzy_gO39', date: '2024-03-31'}
+                                ,{title: '(Shorts) 동네 마실', link: 'https://youtube.com/shorts/2PpR9O40zQw?si=z9dPrRghjySsxCbC', date: '2024-03-31'}
+                                ,{title: '(Shorts) 은근슬쩍', link: 'https://youtube.com/shorts/d76t-pEwAN4?si=dqtap9nBnez762ey', date: '2024-03-31'}
+                                ,{title: '(Shorts) 레디 액션', link: 'https://youtube.com/shorts/zP_B_u1am2M?si=C_URrnujhy-tR9L3', date: '2024-04-01'}
+                                ,{title: '(Shorts) 까불어 깨물어', link: 'https://youtube.com/shorts/R-gJqh32hIs?si=u1LSLR-KWdg5Yf5n', date: '2024-04-01'}
+                                ,{title: '(Shorts) 방귀 뀐 놈이 성낸다', link: 'https://youtube.com/shorts/hxLZymVfl80?si=mhOLd4fvxnslmAqA', date: '2024-04-04'}
+                                ,{title: '(Shorts) 살점을 내어주면서', link: 'https://youtube.com/shorts/lNofYVPXzMs?si=2q0F9cF5TCWMGpJV', date: '2024-04-19'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/108600/header.jpg?t=1691508011" alt="좀보이드 (Project Zomboid)">
+                            <span class="game-title">좀보이드 (Project Zomboid)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('SportsGames')">
+                    8. 스포츠 / 리듬 게임
+                    <span class="toggle-icon" id="SportsToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="SportsCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="SportsGames">
+                    <ul class="game-list">
+                        <li data-title="불과 얼음의 춤 (A Dance of Fire and Ice)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 알겠어요', link: 'https://youtube.com/shorts/rJMMkovZXCE?si=4oFJO7q9D8-gSp6W', date: '2024-06-18'}
+                                ,{title: '(Shorts) 얼불춤을 했더니 생기는 이슈', link: 'https://youtube.com/shorts/xvuu6_Tp9mU?si=IuZhSOtDJYnT83KH', date: '2024-06-18'}
+                                ,{title: '(Shorts) 안 오케이', link: 'https://youtube.com/shorts/DQLZYO4gP6w?si=1pzKHg9osINL9n5K', date: '2024-06-19'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/jaCjKqVOeQPdMBWxgrZKXDmmg35u9rg3w6J5fU6jlb_qdix5XpjioRAwmPT93LZLkfw92DaC59TlHTx06cHCJUSmq0OHr9xfGtRam7Rtco1k3yHcprR6ESYRr23YVlhPlVB_A5pGF8fFR8bGMFjptA.webp" alt="불과 얼음의 춤 (A Dance of Fire and Ice)">
+                            <span class="game-title">불과 얼음의 춤 (A Dance of Fire and Ice)</span>
+                        </li>
+                        <li data-title="왁제이맥스 (WJMAX)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 홀손 (조작 아님)', link: 'https://youtube.com/shorts/jAgIuevgLD8?si=b0SXv-6LnjtSB_Pi', date: '2023-10-06'}
+                                ,{title: '(Shorts) 축복', link: 'https://youtube.com/shorts/FXkm3Gbr0ac?si=5-28juFgikTAUYrj', date: '2024-05-02'}
+                                ,{title: '(Shorts) 진심 100%', link: 'https://youtube.com/shorts/EFjFzxfZN_k?si=1uNBhfmLu7tqe6Yu', date: '2024-08-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/9zpFip6MxWpDINv6qAEv31E1pKmecER_pyl1-6iKMh-fFG5eFphgiVuK8xwDacYQcWWw5X1E00pDDcUsfvoOTqsT3pl3JlDCQ7qb8Au5jHR1NqMNiimF4aVRDTVN8AY4eNBPbypn_umf25d0O0wDXQ.webp" alt="왁제이맥스 (WJMAX)">
+                            <span class="game-title">왁제이맥스 (WJMAX)</span>
+                        </li>
+                        <li data-title="피파 23 (EA SPORTS™ FIFA 23)"
+                            onclick="showVideo([
+                                {title: '[FIFA23] 조작법부터 세미프로까지 뉴비의 여정', link: 'https://youtu.be/p4pDUzFlkf8?si=jIoPZcUhf_Gsx--Q', date: '2023-02-23'}
+                                ,{title: '피파를 하게 된지 7시간째 .. 세미프로 이겼다 (3일차)', link: 'https://youtu.be/f-DgLNG0je0?si=6YCQ4rYYWYFcV5Oj', date: '2023-03-01'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/s9DXqBeha_qIA3v0oy4JDH02OYx9BZ1y-7oIyaUu-t2MUAak2wYujdy1tGzxcC_8bAJrJMDFoRb8oR285_AKQHQ6UANrkZjUHOxeakZZf1-sh6mLLPWJZqWd22AOnlJ4DONQ56Hp_Q4MaKoQosMFCQ.webp" alt="피파 23 (EA SPORTS™ FIFA 23)">
+                            <span class="game-title">피파 23 (EA SPORTS™ FIFA 23)</span>
+                        </li>
+                        <li data-title="피파 25 (EA SPORTS FC™ 25)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/39zM4djfJPzFFS3o9pCWm_riuI5eGb9a-ZUi7QKcIwyDejZvHz5h9kfOwNm34eff35bet-gMbJ4rHxucIx9uJvMkWR5jvu9oS6JCBckKoQ5SM8MhbSLOFweADLan0EIxNUFVVlda5sfkRMRp81QEmg.webp" alt="피파 25 (EA SPORTS FC™ 25)">
+                            <span class="game-title">피파 25 (EA SPORTS FC™ 25)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('SimulationGames')">
+                    9. 시뮬레이션 게임
+                    <span class="toggle-icon" id="SimulationToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="SimulationCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="SimulationGames">
+                    <ul class="game-list">
+                        <li data-title="TCG 카드 샵 시뮬레이터(TCG Card Shop Simulator)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/uiUTTaFcy48wz3xgOMJZCccW1bT1yT6JwyqVNkoOJHZgh_z8elTH4pCZT6qbwg9EoKj6Vlc1upfaDxwW_4OKk_BWedD8pGfS84C3uQ9Mazr6HzUstkR4923m15zLpeS_AKEzqKuF8_2g92jB1jKlzA.webp" alt="TCG 카드 샵 시뮬레이터(TCG Card Shop Simulator)">
+                            <span class="game-title">TCG 카드 샵 시뮬레이터(TCG Card Shop Simulator)</span>
+                        </li>
+                        <li data-title="군중 시뮬레이터 (Crowd Simulator)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1141650/header.jpg?t=1726277298" alt="군중 시뮬레이터 (Crowd Simulator)">
+                            <span class="game-title">군중 시뮬레이터 (Crowd Simulator)</span>
+                        </li>
+                        <li data-title="나는 아르바이트생이다!!(I Am Part-time Worker!!)"
+                            onclick="showVideo([
+                                {title: '진상 손님 디펜스', link: 'https://youtu.be/hxOWSnJMW0c?si=K1eiateJPddJ3piq', date: '2024-07-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2985930/header.jpg?t=1720254664" alt="나는 아르바이트생이다!!(I Am Part-time Worker!!)">
+                            <span class="game-title">나는 아르바이트생이다!!(I Am Part-time Worker!!)</span>
+                        </li>
+                        <li data-title="도둑 시뮬레이터 (Thief Simulator)"
+                            onclick="showVideo([
+                                {title: '거침없는 도둑의 최후란', link: 'https://youtu.be/oxe7yLMzmmM?si=q6-EJ8SCqG8Ba7mk', date: '2023-04-23'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/QV3xUcdvExo2Z7UkvoO1GNXexzWjuHGPPqvjOdCkLcQp4vpgGXq57Mi0aqnzGiuv_35aaI1SiAHIwM_r3VDo2G-CcyE_V_1S-22dKwlUv-XLTps11yM-Q4hcPuKJYM49IhQ0EYeCbAV9NByzqpX45A.webp" alt="도둑 시뮬레이터 (Thief Simulator)">
+                            <span class="game-title">도둑 시뮬레이터 (Thief Simulator)</span>
+                        </li>
+                        <li data-title="두 낫 피드 더 몽키즈 (Do Not Feed the Monkeys)"
+                            onclick="showVideo([
+                                {title: '[Do Not Feed the Monkeys] 지금 내가 뭘 보고 있는 거지? CCTV로 감시하는 게임', link: 'https://youtu.be/tt7ObCsMMGA?si=8z-H6kacWSzBw70t', date: '2023-06-19'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/x6CdRbPK9bdmOO0bLnz6h3KYqWnvCC_MjyKe0cSkn_nxF-pPLXGuD-uQ5oohS9w9SgF8RD_4O12dd7UvzhqnDW6PKzzh6j4nKyG4_8WsPuuie12S_q6kiGJ1BLOMkUahtFRhifKVtDNWwBo0C0btcQ.webp" alt="두 낫 피드 더 몽키즈 (Do Not Feed the Monkeys)">
+                            <span class="game-title">두 낫 피드 더 몽키즈 (Do Not Feed the Monkeys)</span>
+                        </li>
+                        <li data-title="드렁큰 웨이 투 홈 (Drunken way to Home)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2591520/header.jpg?t=1723373852" alt="드렁큰 웨이 투 홈 (Drunken way to Home)">
+                            <span class="game-title">드렁큰 웨이 투 홈 (Drunken way to Home)</span>
+                        </li>
+                        <li data-title="모태솔로"
+                            onclick="showVideo([
+                                {title: '[모태솔로] 하지마 그러지마 아니야 안돼', link: 'https://youtu.be/ier1L90DTUU?si=jP04r5SsYQH1Pj7K', date: '2023-06-23'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/O1kKaJY5q27VcrQL6eP5j0Dc6lprGQcnxh6JShX63KSFk1BHVb1iA5S5LyKpoANg3Zfs4Bpismr65zD5r_6avIfW8QIETW7I6W85mYO57F3ZHHUWYjO04u-QfzxsAzcxYn3N8sRO3eZHJ2OVg8OiaQ.webp" alt="모태솔로">
+                            <span class="game-title">모태솔로</span>
+                        </li>
+                        <li data-title="미스터 프레지던트! (Mr.President!)"
+                            onclick="showVideo([
+                                {title: '[Mr.president!] 조금 많이 불량한 보디가드의 대통령 지키기', link: 'https://youtu.be/mIij-wOjlvk?si=Akbanzh33n3onwra', date: '2023-05-04'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/XY9kooQF5cB_KPGq0DqD8xMG-sS_TYRVaCeFTIntOMAr1nypmo4DCvkqwmsLECK1oVrySCS5ePJazbZ74psZkmLyaauHMWuG3nDE6Lg9sbvknhwrjxOSx65NkpaV7UzXSYLzOU93qjF0EjWYzSTeWA.webp" alt="미스터 프레지던트! (Mr.President!)">
+                            <span class="game-title">미스터 프레지던트! (Mr.President!)</span>
+                        </li>
+                        <li data-title="슈퍼마켓 시뮬레이터 (Supermarket Simulator)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 기묘한 시리', link: 'https://youtube.com/shorts/t3VMlHHzYS4?si=lBTN0xR09LDtqCaq', date: '2023-07-25'}
+                                ,{title: '(Shorts) 무한할인', link: 'https://youtube.com/shorts/dXIa3A-j7wg?si=DW43Ik-M14rgVY2b', date: '2023-07-25'}
+                                ,{title: '(Shorts) 슈퍼노바마켓', link: 'https://youtube.com/shorts/tPmW9GD71ts?si=nhn06CX_1p7rjs8C', date: '2023-07-26'}
+                                ,{title: '(Shorts) 애착파스타', link: 'https://youtube.com/shorts/cOanY5MtkKk?si=2aYRcRNvH5jMQcCS', date: '2023-07-26'}
+                                ,{title: '(Shorts) 양아치 스킬', link: 'https://youtube.com/shorts/jdeNQ7gIVCs?si=SKsRiqm2l5O9MYoa', date: '2023-07-27'}
+                                ,{title: '(Shorts) 슈퍼마켓 브이로그', link: 'https://youtube.com/shorts/cOW0qmHXbUw?si=VjR0JOZywWg8gnTN', date: '2023-07-27'}
+                                ,{title: '(Shorts) 셀프입니다', link: 'https://youtube.com/shorts/zq3uSblDjvM?si=dFglQLPQ0dpBXNrF', date: '2023-07-28'}
+                                ,{title: '(Shorts) 기분이 좋아서 그만', link: 'https://youtube.com/shorts/RJUP4Wk-MlE?si=RCTk7HBewv0DYm9j', date: '2023-07-28'}
+                                ,{title: '(Shorts) 치즈손님', link: 'https://youtube.com/shorts/zCPrtAPJIvg?si=24QFpuciitittkG5', date: '2023-07-28'}
+                                ,{title: '(Shorts) 뜻밖의 자기통제', link: 'https://youtube.com/shorts/zM8qeZFbYLA?si=akL35j1tnLWe_iGj', date: '2023-07-28'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/lZ3vuTAW2wSzTsN8uMs8UTaYRNHOnp4BxZ9pk1FxcOKbc9D94-9IvlDPgdH-Z1gr1CC1wv4a9GS3ONlFdj7ICd72M7JrwHkdoiChamVTS7vsE68hwQpQhSfoBLSHtLpanBs58gye-ZBTeiBflW0Ghw.webp" alt="슈퍼마켓 시뮬레이터 (Supermarket Simulator)">
+                            <span class="game-title">슈퍼마켓 시뮬레이터 (Supermarket Simulator)</span>                            
+                        </li>
+                        <li data-title="쌀알세기 (かぞえ飯)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2500760/header.jpg?t=1700177168" alt="쌀알세기 (かぞえ飯)">
+                            <span class="game-title">쌀알세기 (かぞえ飯)</span>
+                        </li>
+                        <li data-title="염소 시뮬레이터 (Goat Simulator)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/WExqBZMRc7sZL5CFzHcOtMNk8T7s6p1-sNRvM53kQhesyOyPizxSrDHJrT7cf_1VGoiB2ZGXuW2FDOoUABvXiPHvb8um-eIYIr3x5pngww8lV6p3_316M5S8JnE-T_gPe5tsEMYdIEme148GASveog.webp" alt="염소 시뮬레이터 (Goat Simulator)">
+                            <span class="game-title">염소 시뮬레이터 (Goat Simulator)</span>
+                        </li>
+                        <li data-title="유로 트럭 시뮬레이터 2 (Euro Truck Simulator 2)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 급정거', link: 'https://youtube.com/shorts/OWVM2sKE-9A?si=nEAaO7ykXSF5iqTG', date: '2024-09-05'}
+                                ,{title: '(Shorts) 와이퍼입니다', link: 'https://youtube.com/shorts/xcvGZqR_Mfg?si=yY9fPERjU-6xY0wZ', date: '2024-09-05'}
+                                ,{title: '(Shorts) 쏴리', link: 'https://youtube.com/shorts/HuUa5XKSnFU?si=hQ7E7_3soZSctrA6', date: '2024-09-06'}
+                                ,{title: '(Shorts) 깽판의 행복', link: 'https://youtube.com/shorts/0qAwx-5TMPA?si=ZjIZg0gthCbG5izE', date: '2024-09-06'}
+                                ,{title: '(Shorts) 그냥 한다', link: 'https://youtube.com/shorts/MMD9qY8PqNI?si=aVjkLzJ4XjJi4btd', date: '2024-09-06'}
+                                ,{title: '(Shorts) 살짝 쳐볼게 난', link: 'https://youtube.com/shorts/OVRMrYhqssw?si=-f6yMtU5WtMZKTy3', date: '2024-09-07'}
+                                ,{title: '(Shorts) 무알코올', link: 'https://youtube.com/shorts/-mPYVEu4yNI?si=TeFfrc27UtX9yVLb', date: '2024-09-07'}
+                                ,{title: '(Shorts) 친절한 충돌', link: 'https://youtube.com/shorts/XLsEp3YOeO0?si=jQfr-pM_dSpAW2I2', date: '2024-09-07'}
+                                ,{title: '(Shorts) 습관의 중요성', link: 'https://youtube.com/shorts/qNHjJWTRzzU?si=PiXc3OcTSCYP8NA-', date: '2024-09-08'}
+                                ,{title: '(Shorts) 전진 전문가', link: 'https://youtube.com/shorts/-aVBSKCNWMk?si=jZq4uvOlSmJkQ8l8', date: '2024-09-08'}
+                                ,{title: '(Shorts) 여러분 하셨어요?', link: 'https://youtube.com/shorts/rwUrn9rSYbw?si=_qAkCw87xY7ZCPdM', date: '2024-09-20'}
+                                ,{title: '(Shorts) 멀미 유발', link: 'https://youtube.com/shorts/O3p2zibWnjI?si=5IqH0s2W8LBkB55z', date: '2024-09-20'}
+                                ,{title: '(Shorts) 3가지', link: 'https://youtube.com/shorts/b7V2UjiJF9I?si=IoO1L4uT5irjSQ7X', date: '2024-09-21'}
+                                ,{title: '(Shorts) 결말 없는 말', link: 'https://youtube.com/shorts/Bh47PT5Bapc?si=zan74eIx4g7rZg3A', date: '2024-09-21'}
+                                ,{title: '(Shorts) 무법자', link: 'https://youtube.com/shorts/mmdMBktIqHk?si=kz1WXjosKlBb95QM', date: '2024-09-23'}
+                                ,{title: '(Shorts) 이게 왜 이러지', link: 'https://youtube.com/shorts/fBlKdQTp2J4?si=o6872oFhPFYExZxo', date: '2024-09-23'}
+                                ,{title: '(Shorts) 와이퍼도 신나니까', link: 'https://youtube.com/shorts/bg6ex9e9Kkg?si=s7FMR6JEASIP-8PV', date: '2024-09-24'}
+                                ,{title: '(Shorts) 운전의 정석 말고', link: 'https://youtube.com/shorts/i-9bDMo-UsI?si=8WXjOYEqiwmr9Nc3', date: '2024-09-24'}
+                                ,{title: '(Shorts) 4분 집념', link: 'https://youtube.com/shorts/tk5cMnHo880?si=viqrsFOCfMDNh0i6', date: '2024-10-16'}
+                                ,{title: '(Shorts) 정말 몰랐던 주인', link: 'https://youtube.com/shorts/aZItVgN0GeY?si=thXFckwglpvzgraD', date: '2024-10-16'}
+                                ,{title: '(Shorts) 막무가내', link: 'https://youtube.com/shorts/luslIFGEIBY?si=nvbbXorqyL2pzkEN', date: '2024-10-16'}
+                                ,{title: '(Shorts) 적반하장', link: 'https://youtube.com/shorts/jdl2N5bUC0s?si=N6f7-90knFw1WOKb', date: '2024-10-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/q2Q8QRDTGyGl2Vc1enQ_vu92MbNkyi5bzR_-ckDDPK8WWXVKx5FWnvv9-DNaIz5RAPE6xrsSUcMPFxl4tbjyiYCh4Y27tONxwSGxi8k0eY6-543c_Fi4-zCKhzqMJ89XdjP83dsvLofYAo5fbhOD3Q.webp" alt="유로 트럭 시뮬레이터 2 (Euro Truck Simulator 2)">
+                            <span class="game-title">유로 트럭 시뮬레이터 2 (Euro Truck Simulator 2)</span>
+                        </li>
+                        <li data-title="클로 머신 심(Claw Machine Sim)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 인형뽑기국룰', link: 'https://youtube.com/shorts/-tUdR4_ou_c?si=qyR1xGsJuJwWfZOD', date: '2024-08-13'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2456120/header_alt_assets_0.jpg?t=1729027013" alt="클로 머신 심(Claw Machine Sim)">
+                            <span class="game-title">클로 머신 심(Claw Machine Sim)</span>
+                        </li>
+                        <li data-title="핸드 시뮬레이터 (Hand Simulator)"
+                            onclick="showVideo([
+                                {title: '[Hand Simulator] 서로 방해하지 않으면 큰일나는 사람들', link: 'https://youtu.be/kb-S2NSLv5U?si=yp7Y0cbGos-nPimp', date: '2023-08-10'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/6GFQz--V7F1_NY8F8qp4iDdMMDfFrUX2OiHmIaqlckY-EkkRhH-407MIT2rbbsLUJAQC0_J-ITUvElIHRk4c727llab_AV_s44FIfklsreXOfrvQ33I5SN7SoBsbJHoMtwGn-PcxL3t2uoON2bdf9w.webp" alt="핸드 시뮬레이터 (Hand Simulator)">
+                            <span class="game-title">핸드 시뮬레이터 (Hand Simulator)</span>
+                        </li>
+                        <li data-title="핸드 시뮬레이터: 호러 (Hand Simulator: Horror)"
+                            onclick="showVideo([
+                                {title: '[핸드시뮬레이터 호러] 다른 의미의 공포 게임', link: 'https://youtu.be/GtZFBfpmhmQ?si=V1iCH2Nn0RZk_md1', date: '2023-09-12'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1027820/header.jpg?t=1664350280" alt="핸드 시뮬레이터: 호러 (Hand Simulator: Horror) ">
+                            <span class="game-title">핸드 시뮬레이터: 호러 (Hand Simulator: Horror) </span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('rpgGames')">
+                    10. 액션 / RPG 게임
+                    <span class="toggle-icon" id="rpgToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="rpgCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="rpgGames">
+                    <ul class="game-list">
+                        <li data-title="노마드 서바이벌 (Nomad Survival)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1929870/header.jpg?t=1726287387" alt="노마드 서바이벌 (Nomad Survival)">
+                            <span class="game-title">노마드 서바이벌 (Nomad Survival)</span>
+                        </li>
+                        <li data-title="더 게임 오브 시시포스 (The Game of Sisyphus)"
+                            onclick="showVideo([
+                                {title: '어디로 굴러가는거얌마!!!!!', link: 'https://youtu.be/-H7nqsXxnAU?si=Hhtl5qE8Lm6q9Kj_', date: '2024-04-26'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/2dnbfVdUBMeUNI9Nl9PaYKz8EzGkS3YsYguWqUtT9VfRogbqZi712CRiDBguo4CKjfs4Rrc4alaOmG_FXCpVcNxA5G-S7hl3VKYnDJgE_7RM6FDPJVuD5A81hYXHAob31hM2cW5RBm55xSSBXljUrA.webp" alt="더 게임 오브 시시포스 (The Game of Sisyphus)">
+                            <span class="game-title">더 게임 오브 시시포스 (The Game of Sisyphus)</span>
+                        </li>
+                        <li data-title="브로테이토 (Brotato)"
+                            onclick="showVideo([
+                                {title: '[Brotato] 무기 하나 고르는데 랩하는 사람', link: 'https://youtu.be/M-o_ClD3KEo?si=5yR0Jzrq7I7bV0Tm', date: '2023-10-22'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/1j7eKjS8HsCanWL2Kyrps_AB6YOsumqN1dEGId4a2rzN72whxH86CHigOOsPxCxXkjCGJznrP96ERWHtR_hs8KEROPhgxI-6vmiwSAn5KylQ9qUcf7HVLwCq4IcbwBFD5i8kqsPMSSKmjPSq51ZN3g.webp" alt="브로테이토 (Brotato)">
+                            <span class="game-title">브로테이토 (Brotato)</span>
+                        </li>
+                        <li data-title="슈퍼 버니 맨 (Super Bunny Man)"
+                            onclick="showVideo([
+                                {title: '갈게요 진짜 갈게요 잠시만요', link: 'https://youtu.be/om7ltEeQevU?si=OaP8qwBM3LMjW-2l', date: '2023-07-23'}
+                                ,{title: '[Super Bunny Man] 웃겨죽겠어요ㅋㅋㅋㅋㅋㅋ 레전드 버그억까를 이겨라', link: 'https://youtu.be/M44QWPdytwc?si=-O447QPv4QA2EZ4D', date: '2023-07-23'}
+                                ,{title: '(Shorts) 잠시만요 갈게요', link: 'https://youtube.com/shorts/BentwjQnvwk?si=eCrCqPFx7MemQ5T7', date: '2024-05-20'}
+                                ,{title: '올타임 레전드 돌아온 슈퍼버니맨', link: 'https://youtu.be/52t8tZOj754?si=phBJ5exT1z91p80q', date: '2024-07-23'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/KrEKNRU1ZSU0_8kxS71U3-Vu0i76WJ5NBkmxwexsGrWpZT0hyq-VKYT8FTmRuvLxCu0jgP5XjhliJXlXzUeaqnnGdBFZCrkBgw3BUxZIu4VUvaRNV7kiFbwLSyu34JHyccxG1Eb0H8l0nYujPJLy0g.webp" alt="슈퍼 버니 맨 (Super Bunny Man)">
+                            <span class="game-title">슈퍼 버니 맨 (Super Bunny Man)</span>
+                        </li>
+                        <li data-title="슈퍼핫 (SUPERHOT)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/vFgSo29g5DjtXS_q301sfOeWBT3npUjL3HRs2tbnu4BCLlSiAdhDdMA9QciEi7zWVshrPo_RxE0Oh_mRVHzVZCEzzKOr0Yy8X6_fpgKdvS-qBVlID7UHRDiNMCeqHo434m1vDRW7vpmbIJ1Tu00u0A.webp" alt="슈퍼핫 (SUPERHOT)">
+                            <span class="game-title">슈퍼핫 (SUPERHOT)</span>
+                        </li>
+                        <li data-title="아이 돈트 폴 (I don't fall)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/MxreZfVhnk7jHQBKny0HwRlxBHFRh_ZoKSAHNGTvUMZZPd7vo9eHXtYnR5YFLUWTrKewRpMFQ6cVSOykLA4S1PK7qD1sbjtZWsRATuS4oHeKnDP_kFogfhlQh2MoYsWXB1lAH_5X-Ea6JgjFU7bksA.webp" alt="아이 돈트 폴 (I don't fall)">
+                            <span class="game-title">아이 돈트 폴 (I don't fall)</span>
+                        </li>
+                        <li data-title="앙빅 2 (Angvik 2)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/KxZCyBN_sp3KBSkprgdDO4kCdR7rjOMdavT-PaOFHB52q2jqWwFLTkSxfXWe6GLFNoH2n_SFxUfGtfxQKZwnFvQYSMg6EJ4H_x0QRqIMZaKzK566LF6nE9a6jFaTZ-RqKEm6nPoOD3ktuh8gvjQ1FA.webp" alt="앙빅 2 (Angvik 2)">
+                            <span class="game-title">앙빅 2 (Angvik 2)</span>
+                        </li>
+                        <li data-title="용과 같이 0 맹세의 장소"
+                            onclick="showVideo([
+                                {title: '[용과 같이 제로] 나로 말할 것 같으면', link: 'https://youtu.be/Kpm2QHVnZiU?si=GrlkPuRO6rtQSMMV', date: '2023-10-30'}
+                                ,{title: '[용과 같이 제로] 어딜 가든 시비가 붙는 남자', link: 'https://youtu.be/Bz3PnCrLj68?si=gOlUVgU5Sc3d5q8j', date: '2023-11-21'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/AoQUjLSl3bdem0K3toT9LdQ-NppN2IZ413mkqKLipby8fq86hJvnNxH2BQQ1D_FYHsxDXYFTsi22G_tB6GR6ghr6C2ZE0MPUn-mJ4huxmOtRwf3mSiCqI7RznuRmqngbGEyB_hLKQbPMSgsD18NO4g.webp" alt="용과 같이 0 맹세의 장소">
+                            <span class="game-title">용과 같이 0 맹세의 장소</span>                            
+                        </li>
+                        <li data-title="킹 오브 크랩 (King of Crabs)"
+                            onclick="showVideo([
+                                {title: '태세전환 레전드ㅋㅋㅋㅋㅋ 내 친구가 될래? 무서운 그녀의 집착', link: 'https://youtu.be/Iq7v1S8K7Yc?si=YjIHOPQywpf1SpR0', date: '2023-06-16'}
+                                ,{title: '[King of Crabs] 내가 바로 이 구역의 건달? 게틀 그라운드 풀영상', link: 'https://youtu.be/meTjcMxLBQk?si=CunXgm--NBelYpPg', date: '2023-06-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/GS8YMEDN7EDzv2pknRDw93mUJhR4PlCT7LwMm_6czd84oRZzI8I3sfdeqEJnXQ_133pwq82qofJw1mx0NPDiMM24B--fA_J5_8TKHN6mi7xr5RjOF8zBY-RuA4jFupeWdNoDqv9GgNRgkV7D5B8u8Q.webp" alt="킹 오브 크랩 (King of Crabs)">
+                            <span class="game-title">킹 오브 크랩 (King of Crabs)</span>
+                        </li>
+                        <li data-title="포켓로그 (PokéRogue)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/p654TxC6-raElDagMnKHj-xmEa2k24-cUTYA_UT83cOjN8CBpNJU77jGR9QI3hToR0CGNE5Z94vlWFoZpO76B2acdjy3KDwIgubbHfRx9m36WZ0NlTZxc4lUk3cXrzx3NWAxjN4aEzZjAfKQAgBTQA.webp" alt="포켓로그 (PokéRogue)">
+                            <span class="game-title">포켓로그 (PokéRogue)</span>
+                        </li>
+                        <li data-title="후스 유어 대디?! (Who's Your Daddy?!)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/SeQfB1eajARrnCRWvLETcAyI6xYvacle5o9gii7K5TAuU73E3G19rRmTJ7J28gC3QPUPbU5y6YRDb9SRPcUHF-t9g1MdywCPKwDcO0nwZSYDtNdkSu7AlDGlu2KgeolnQ7SiafawBL-fauOJ6xcosw.webp" alt="후스 유어 대디?! (Who's Your Daddy?!)">
+                            <span class="game-title">후스 유어 대디?! (Who's Your Daddy?!)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('platformGames')">
+                    11. 액션 어드벤처 / 플랫폼
+                    <span class="toggle-icon" id="platformToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="platformCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="platformGames">
+                    <ul class="game-list">
+                        <li data-title="마운틴알파카 (Mountain Alpaca)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2277350/header.jpg?t=1677818475" alt="마운틴알파카 (Mountain Alpaca)">
+                            <span class="game-title">마운틴알파카 (Mountain Alpaca)</span>
+                        </li>
+                        <li data-title="알트에프포 (ALTF4)"
+                            onclick="showVideo([
+                                {title: '[ALTF42] 중요한 건 그거다', link: 'https://youtu.be/zOud7NhlAbM?si=oyceOaOM53iuiu1A', date: '2023-04-09'}
+                                ,{title: '[ALTF42] 저를 믿으십니까', link: 'https://youtu.be/mGZTe0kmdYY?si=NH8xCqOlMOwZ0nl4', date: '2023-04-13'}
+                                ,{title: '(Shorts) 이왜진 내 세이브', link: 'https://youtube.com/shorts/dDbWHWES8Fk?si=baJUeNkjNWkEd_op', date: '2023-04-30'}
+                                ,{title: '(Shorts) 교수님의 특강 #shorts', link: 'https://youtube.com/shorts/3VWr14Ud_w4?si=GeuZmJNx8DhTtnF7', date: '2023-05-19'}
+                                ,{title: '(Shorts) 돌아버리겠네 #shorts', link: 'https://youtube.com/shorts/DtHlW84IzTo?si=6q4keuL6WPGesnrl', date: '2023-05-22'}
+                                ,{title: '(Shorts) 그 발언 #shorts', link: 'https://youtube.com/shorts/3J_A6iM25hk?si=w7rrjTXLFhqR4QPO', date: '2023-05-27'}
+                                ,{title: '(Shorts) 아이고의미없다 #shorts', link: 'https://youtube.com/shorts/jT3hzz4VwsA?si=0E3gHvICAxD1OTC0', date: '2023-05-29'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/hstGUQwNLCTvkphG2BSWc1TUx2fp648L_l3Al_aXL09j-7dV0vKCTxcV1aLFNtnhGwI-xrVfuLvQhKkLqxuXtvcRLtYqYpO92_9jOn_fLO2JGNVoklJrtUoHv6oME78tIwElBOpkYu3K37l4nFj_nw.webp" alt="알트에프포 (ALTF4)">
+                            <span class="game-title">알트에프포 (ALTF4)</span>
+                        </li>
+                        <li data-title="어 디피컬트 게임 어바웃 클라이밍 (a difficult game about climbing)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 질풍가도', link: 'https://youtube.com/shorts/XHxLH3IT8WA?si=_mDClMbtXEQgLZVJ', date: '2024-03-17'}
+                                ,{title: '(Shorts) 시작', link: 'https://youtube.com/shorts/24mw2KKps6s?si=jBueRAag2Cqou9Eb', date: '2024-03-17'}
+                                ,{title: '(Shorts) 러브 다이브', link: 'https://youtube.com/shorts/QW3zdRNZyVw?si=-5V1SmR3q7p9kUtX', date: '2024-03-17'}
+                                ,{title: '(Shorts) 오랑우탄', link: 'https://youtube.com/shorts/yryUzhjp80g?si=Qanxx-gMYjsk026W', date: '2024-03-18'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/GBM461xosByH7BJFmEF1naDx6of-J8sBzzu5z4OAjClv8PcvNZ9GTq5Ft1F803xn1AD_bw60xw7sJDEqaxr6W4oQ-UAZvHFXtqVhm6s6cGiDmfOV4RtgFHBSd458i5LsAXlXNvdto0L3e7k3YlLRTg.webp" alt="어 디피컬트 게임 어바웃 클라이밍 (a difficult game about climbing)">
+                            <span class="game-title">어 디피컬트 게임 어바웃 클라이밍 (a difficult game about climbing)</span>
+                        </li>
+                        <li data-title="온리 다운! (Only Down!)"
+                            onclick="showVideo([
+                                {title: '[Only Down] 온리 껴 .. 자꾸 껴.. 살려주세요', link: 'https://youtu.be/yoJGc29rApk?si=PmgJ1fWIGEfHFldi', date: '2023-08-02'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/cbeWhVJuDZEdkCS3K9Ppab7DJuJ6ycA2ZcWoWXjumkxOHzdM2RxmF22e1fKFhherx6cARFRfjDtlYRko0ekcpj6DKXO1zOZVxMnrW_RVJtj8kqi_GmWeSEfCJDHz2mggSdyUSgvE9ntnow5CA4e8yQ.webp" alt="온리 다운! (Only Down!)">
+                            <span class="game-title">온리 다운! (Only Down!)</span>
+                        </li>
+                        <li data-title="온리 업! (Only Up!)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 4D열차', link: 'https://youtube.com/shorts/C55nAx_XJEw?si=zasIo8xuQhdNpa4C', date: '2024-07-02'}
+                                ,{title: '[Only Up!] 알 수 없는 끝을 향하여', link: 'https://youtu.be/nzTDd0WFiME?si=DwlkAJNDtt9mXpQU', date: '2023-07-03'}
+                                ,{title: '내려ㄱㅏ..는. 아니 올라가는 게임 온리업', link: 'https://youtu.be/frIjUCFoJ58?si=sHjFoUAflzh0okoO', date: '2023-07-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/wEk-J0O0relbi-QdpS_i6un9JdfeY49VLSMuRqBDW-LJUp4qeyCA0cxwSZ9fZmmJPsSEiRD7ozGTHDwh22ob201GvoSR7soCJl5WK_Enf_MfUqcs8_jEGdfvhs8Rqor78NcBx_sp4EKdSPOFMWam3A.webp" alt="온리 업! (Only Up!)">
+                            <span class="game-title">온리 업! (Only Up!)</span>
+                        </li>
+                        <li data-title="완벽한 자세 (Perfect Poses)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2758210/header_koreana.jpg?t=1713851203" alt="완벽한 자세 (Perfect Poses)">
+                            <span class="game-title">완벽한 자세 (Perfect Poses)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('StoryGames')">
+                    12. 어드벤처 / 스토리텔링 게임
+                    <span class="toggle-icon" id="StoryToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="StoryCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="StoryGames">
+                    <ul class="game-list">
+                        <li data-title="Behind the Frame: 가장 아름다운 경치"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/K2PmUEubQmxsjBz3AySZaFbFm4R3XeEp1HWXSc4A2T-6Yzbfzg_EBGRoKa9evTPj4Sj-P2fjZeRGwhzbr1AYD61GYmPF2hD5Q2ZRw6L-dWtV4vT-nGccdl0p77E113o9R7Iy8jqDVi1ZkeAMz2NOdg.webp" alt="Behind the Frame: 가장 아름다운 경치">
+                            <span class="game-title">Behind the Frame: 가장 아름다운 경치</span>
+                        </li>
+                        <li data-title="Refind Self: 성격 진단 게임"
+                            onclick="showVideo([
+                                {title: '성격진단게임? 됐고 일단 승부다!!!!', link: 'https://youtu.be/yvOwYj3GF3Q?si=BrcbwI5SCRCOoQzk', date: '2023-12-25'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/G8NsVya10WxLdGni7lkxLIHpm4t0K-AzzJKviCsutUdBNONjSd0P-dEmQ14JVTTxnl4ytONkYYwPnvzDNqhUUy2B5dQNo4x2RDeZ0WVEimdXwDszOcfL18tlkP0ZRBohq5oTe1P5_-VoVAtO9q_SJg.webp" alt="Refind Self: 성격 진단 게임">
+                            <span class="game-title">Refind Self: 성격 진단 게임</span>
+                        </li>
+                        <li data-title="The Star Named EOS - 별을 향한 여정"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1619230/header_koreana.jpg?t=1724901407" alt="The Star Named EOS - 별을 향한 여정">
+                            <span class="game-title">The Star Named EOS - 별을 향한 여정</span>
+                        </li>
+                        <li data-title="그리스 (GRIS)"
+                            onclick="showVideo([
+                                {title: '[GRIS] 순식간에 빠져드는 아름다운 힐링 게임 그리스', link: 'https://youtu.be/7DnIGWka3q0?si=53WGWjEICYQc92dA', date: '2023-08-06'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/eKg_6wvQ_D1VuWQdP3eVhPIFDnxFloS3i1sFg7tSmre202vE4KdER34ahc18qCcsAuV9v8V37P3TrdRL6p-_OUH4xSHlydCdGjcPDpui41KR5CgFOXoMRoO1OB_kqjPDxys1gLZtPnIdSlPZL-8axA.webp" alt="그리스 (GRIS)">
+                            <span class="game-title">그리스 (GRIS)</span>
+                        </li>
+                        <li data-title="난 물고기야 (I AM FISH)"
+                            onclick="showVideo([
+                                {title: '[난 물고기야] 우리 복어가 달라졌어요', link: 'https://youtu.be/yJ-a88uTS0M?si=TGrGIQ-QT2_FclSO', date: '2023-07-25'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/tdikrQDQd2tji97mZ5MDMahUr3PQfkuhKgb47DTPjBj6wKEfnuGDRuRD6kTcX1wjW_e7aQhr62Jx4PUUAS53JWUcrtJxayPrN0SvlF_TfBhB4wlzLT-QheqU-tN-hxAMRbdBpa-woagkINrfjl6Gqg.webp" alt="난 물고기야 (I AM FISH)">
+                            <span class="game-title">난 물고기야 (I AM FISH)</span>
+                        </li>
+                        <li data-title="노베나 디아볼로스 (Novena Diabolos)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://i.namu.wiki/i/NdRg5D0ggSusDz6SYqnr4z6OUuLGTN3_K3bQA35MTWHLfj_NltZgbCC9DzAaIdYkOrXOF3d1tQmSsj8OXQZQ0_yAuG8H-RPbIv1Vf5Ze9gTELEBayLli84N2XUp0h0uXdRFehLEv4x9LJgY968gmBA.webp" alt="노베나 디아볼로스 (Novena Diabolos)">
+                            <span class="game-title">노베나 디아볼로스 (Novena Diabolos)</span>
+                        </li>
+                        <li data-title="녹터널즈 (Nocturnals)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 기절초풍', link: 'https://youtube.com/shorts/bR9ZHCCFxi8?si=czbL6g1bw30BjUFX', date: '2024-10-15'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2578910/header.jpg?t=1728497189" alt="녹터널즈 (Nocturnals)">
+                            <span class="game-title">녹터널즈 (Nocturnals)</span>
+                        </li>
+                        <li data-title="더 다크 픽처스 앤솔로지: 하우스 오브 애쉬 (The Dark Pictures Anthology: House of Ashes)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://i.namu.wiki/i/X1f8U9l9gdHRzUVxe0PtuhCiUY4pJHGdM30IZmeq6yodNBlzPC2FBd-aenBCN3OXsQDiEHKLazqjemzPMtTEONCmY6X3h_IdE1I00EagQ-j7OIJXdmaFnO9hqthPnD8hGMFRIeCSeYnaEKhmTv0rYw.webp" alt="더 다크 픽처스 앤솔로지: 하우스 오브 애쉬 (The Dark Pictures Anthology: House of Ashes)">
+                            <span class="game-title">더 다크 픽처스 앤솔로지: 하우스 오브 애쉬 (The Dark Pictures Anthology: House of Ashes)</span>
+                        </li>
+                        <li data-title="더 라스트 캠프파이어 (The Last Campfire)" onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990630/header.jpg?t=1725272727" alt="더 라스트 캠프파이어 (The Last Campfire)">
+                            <span class="game-title">더 라스트 캠프파이어 (The Last Campfire)</span>
+                        </li>
+                        <li data-title="데이즈 곤 (Days Gone)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 대문자 T', link: 'https://youtube.com/shorts/iqz0_q57EM8?si=teHbEFcsNAoLKDbz', date: '2024-01-11'}
+                                ,{title: '(Shorts) 특별 출현', link: 'https://youtube.com/shorts/So3q9qfyQKg?si=ByzPls0OQuv5qGc2', date: '2024-01-12'}
+                                ,{title: '(Shorts) 사람은 누구나', link: 'https://youtube.com/shorts/dVmmDpP3kYE?si=FXauF3TYWixn3Bih', date: '2024-03-02'}
+                                ,{title: '(Shorts) 선택적 싸움꾼', link: 'https://youtube.com/shorts/M-sQPboEsXs?si=ns2NpArtkIIM6xoE', date: '2024-03-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/rirP_oEv5T6UWnI68vwwp3tVHr4ITeHHw2J00V_2i_ZB-raLJsnr7lVtk2TD9etj-dehQedM8G4rnzQPS1PZfX26qxzbFTSAR9vmF2xzUFTFN17Yj9lBYQa52KFbCysE6UQIjZipwSvX-mHvyZAkFQ.webp" alt="데이즈 곤 (Days Gone)">
+                            <span class="game-title">데이즈 곤 (Days Gone)</span>                            
+                        </li>
+                        <li data-title="디트로이트: 비컴 휴먼 (Detroit: Become Human)"
+                            onclick="showVideo([
+                                {title: '[Detroit: Become Human] 예측할 수 없는 선택의 연속, 나의 엔딩은? (Full)', link: 'https://youtu.be/9CU3PBE8zg4?si=nHvhaH_VZS2WZqbB', date: '2023-11-22'}
+                                ,{title: '(Shorts) 확신의 T', link: 'https://youtube.com/shorts/RZJqm49J7a8?si=dnVM1jjqucatn1GN', date: '2024-06-17'}
+                                ,{title: '(Shorts) 안드로이드를 진심으로 공감해주면', link: 'https://youtube.com/shorts/Kw7xEftiztQ?si=fzhm_RBMte7SkVQQ', date: '2024-06-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/AmDKWf5BmA6rZOxrZrvafhHLfip-QvvzPcL9u4DcWeNet9FGyZKhDRNviwDbYJ8jiiBJ1sKA9q8J_d-dWj2YSR_gGy20oucmXVetVS0OBE9XMRo7iVOyHcAJA9pRMEEDpq6-PfU7Wqn1uo6DLmP3xQ.webp" alt="디트로이트: 비컴 휴먼 (Detroit: Become Human)">
+                            <span class="game-title">디트로이트: 비컴 휴먼 (Detroit: Become Human)</span>
+                        </li>
+                        <li data-title="브램블: 산속의 왕 (Bramble: The Mountain King)"
+                            onclick="showVideo([
+                                {title: '누나 구하기 대작전! 고퀄리티 잔혹 동화ㄷㄷ', link: 'https://youtu.be/35kGnEeAiFE?si=7-MlSQ2UHuGmcQpU', date: '2024-08-19'}
+                                ,{title: '(Shorts) 남매사이', link: 'https://youtube.com/shorts/n6dAvZtT2is?si=C45yfAL-vKkRyrmy', date: '2024-08-20'}
+                                ,{title: '(Shorts) 희망고문', link: 'https://youtube.com/shorts/-vSPiBn-cwQ?si=j041QvzGzm-vo4e4', date: '2024-08-21'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/OFSybCzJ-pQpgm_dp16uFeEYCUKFWAEN-MIaXP6DlA2x2i24FQ1kwD2Iy4-f5sL2_yzElrKaqJt6gcpC_-7pJFJABMCk02Aa45RJBcxnBccZevLeDOMUiOM0UKsebJ1R5MMz2MwRrFDHKh6pg5vqHw.webp" alt="브램블: 산속의 왕 (Bramble: The Mountain King)">
+                            <span class="game-title">브램블: 산속의 왕 (Bramble: The Mountain King)</span>
+                        </li>
+                        <li data-title="산나비"
+                            onclick="showVideo([
+                                {title: '[산나비] 와.. 대박 슬프잖아.... (SANABI) 풀영상', link: 'https://youtu.be/qavbCv5-gq0?si=aJBW_QyBRMvoNIPP', date: '2023-12-12'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Mrv_NAZDuUv5h0C5kewAdFOgAluQiKe4mT1ZW2Cr720nwYeApQPW9O5-JwEQlC7NsUgJKAu19cIhuEl_9vAMIOAuPCPAm6s1E2MhOcJpf3p-DrXkj8L0_grDsWV1U9QcDSCPqs5BQZaC_ghyLTeIbg.webp" alt="산나비">
+                            <span class="game-title">산나비</span>
+                        </li>
+                        <li data-title="슬라임 랜처 (찍먹) (Slime Rancher)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/5aXxGXdegRl3ZoYms1p0hIyyl0RjwOUtSjnOu76FCdaXvfNLLic0B9jUpxUs5DxfXbrz_4LNf4bF6oec_aLzmyQ3DTL_2byGWXiXhm-wI3Ef3XyEYMnQxhxjyidkTj4zi4Pefu8q3uCF2VcOAPLQvQ.webp" alt="슬라임 랜처 (찍먹) (Slime Rancher)">
+                            <span class="game-title">슬라임 랜처 (찍먹) (Slime Rancher)</span>
+                        </li>
+                        <li data-title="안녕서울 : 이태원편 (데모)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/3LVWS0iyiCvXtMkGTF54zdcsodate9Me_zxQlZG36bGg5alV1IyraY6cVg0evUWgKQeArWS7o7eh0-fLb_p0BG7yG-tnBV0IzDeyMexAaphj2QHDA-we5xAOMqgUK8p83USjRBxQ6Ne1tZJ7TSbSuw.webp" alt="안녕서울 : 이태원편 (데모)">
+                            <span class="game-title">안녕서울 : 이태원편 (데모)</span>
+                        </li>
+                        <li data-title="어 웨이 아웃 (A WAY OUT)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 혼자 제대로 터진 그녀의 웃음벨', link: 'https://youtube.com/shorts/zyd1d5rL5kU?si=3f_4EjOUndFdFpMR', date: '2024-04-20'}
+                                ,{title: '(Shorts) 덤앤더머', link: 'https://youtube.com/shorts/l2y2s_uYzWk?si=gQ2Xxz3BQiKFhK2d', date: '2024-04-21'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Sk6tdgXJ1KP7uSzmbqAqm1I9eG8Q1WY93y9vUgPJjBFPm-0NVsdxMcNsUdOY_AxuZyVrE5Lw539SXDUjIYjYEo9ZAkiHITKnV3-fgpg-ODTVVSr77Ayrcf9jrlH9SFlNwQRuqLl9bCcfnx-pL-MLnw.webp" alt="어 웨이 아웃 (A WAY OUT)">
+                            <span class="game-title">어 웨이 아웃 (A WAY OUT)</span>
+                        </li>
+                        <li data-title="어 위크 (A Week)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/1Tk8q18STDDICsXVAJJ460fSHbEBpO9H5EFZCCR5QmCz_XJ2qSn2tNHqaJHAYRe9PO_dpSNPLz52tdiT5sB8b6tirnhPn9WBZdXRI9kMQnWPiQN2D9Mu3g7zbUJIughX4Sqhw1aa-KGTcyFIQUVS0g.webp" alt="어 위크 (A Week)">
+                            <span class="game-title">어 위크 (A Week)</span>
+                        </li>
+                        <li data-title="언더테일 (Undertale)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/MBUNz-mAtWB8niZM7hDjC2uYoPtJ-oyqrVWaY6ltD7u_ubPx6edz0QsQg5u23dVF-TqUE6Dz4DC3cRy3WNxdNZQ-_eM7g1GjzfdNtSDnkBAao3BKRuPVuuTX1wWKnpeNbxmd0zcNWMdfwT0mN3bSWg.svg" alt="언더테일 (Undertale)">
+                            <span class="game-title">언더테일 (Undertale)</span>                            
+                        </li>
+                        <li data-title="월드 포 투 (찍먹) (World for Two)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1562930/header.jpg?t=1728639520" alt="월드 포 투 (찍먹) (World for Two)">
+                            <span class="game-title">월드 포 투 (찍먹) (World for Two)</span>
+                        </li>
+                        <li data-title="임포스터 팩토리 (Impostor Factory)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/hdEY1hFwbYIP7X3-IsTq8hOOH5NWW8d2ITjrKdQAJXLBHTewchq_-Qnzf3a0_58N4OiKFbUDUw7JFJns-4ut8Rwy4lpwKycjGKnOc2IBPZ88u6otPdmDrQxmCDjZhpyN5GynGgcPXC7Dq5_bVJ6ysQ.webp" alt="임포스터 팩토리 (Impostor Factory)">
+                            <span class="game-title">임포스터 팩토리 (Impostor Factory)</span>
+                        </li>
+                        <li data-title="잇 테이크 투 (It Takes Two)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 시체놀이 #shorts', link: 'https://youtube.com/shorts/nQuvYRbINmU?si=knPnMyRROisXWkhC', date: '2023-07-23'}
+                                ,{title: '[It Takes Two] 이혼하자고? 그럼 이 손부터 놓자', link: 'https://youtu.be/ecBPeXQdEfQ?si=3opT9jI0R4QosqXD', date: '2023-10-22'}
+                                ,{title: 'T와 F가 만나면? 사랑 그게 뭐길래..★', link: 'https://youtu.be/c5fPOZ1e_Ic?si=MsBbKA7bVUnthdeM', date: '2023-12-25'}
+                                ,{title: '(Shorts) 입맞춤 밀당', link: 'https://youtube.com/shorts/PP8fskYLZDc?si=FR9WCO2WMPaoEqUO', date: '2024-06-07'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/mzqk7cjHhyGCC-ZAv2uCJLLN4K332Yqv99HFYZKWuB_Mfx4XyVCpdGqokj3FwqVRveTDCedHwx1blV5lxN0mMhpQun0Ys1UgSuOURtkEL6ZwIA_bUxpAvEmK3ASQZKd_MjMHGsm8cR7vdmffgwAhAg.webp" alt="잇 테이크 투 (It Takes Two)">
+                            <span class="game-title">잇 테이크 투 (It Takes Two)</span>
+                        </li>
+                        <li data-title="저글러 테일 (A Juggler's Tale)"
+                            onclick="showVideo([
+                                {title: '운명의 실, 꼭두각시 소녀의 선택', link: 'https://youtu.be/lIb8k3iUPmA?si=ikUGaoaGoq9InSJP', date: '2024-03-21'}
+                                ,{title: '환상의 호흡', link: 'https://youtube.com/shorts/9ZFeLbG_H2k?si=DfiifACR8B3lDcZT', date: '2024-03-22'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/8cHKKT0AzsHxhSp1pWsJASU0PHMQrAoly4MEpk63zmfeQBoA0dNidLvbNHIUF2mi3kc60rP_KTxLVZZ-C4tT5ljyhiAiOvJJXRjQBbwUVE9hO14RdZcWZSxMuq-r-Rhvero0pbVZCRX3srInkVOsZw.webp" alt="저글러 테일 (A Juggler's Tale)">
+                            <span class="game-title">저글러 테일 (A Juggler's Tale)</span>
+                        </li>
+                        <li data-title="저니 (Journey)"
+                            onclick="showVideo([
+                                {title: '분명 힐링겜인데 스릴도 공존하는 게임', link: 'https://youtu.be/pn1NXX9u8yQ?si=KkK2Ewr6NB6DUz1x', date: '2024-01-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/qTTxELrRUJXBXvcvD1dRRhZKFDhhDx6U-Uahuag4oVWUmJzsBdFXMUuvinGChl5nlvmUot1w75A2auvZPpfDjF8lj7HGFOl-ViXXLalZ-chqpH76Yl_T_RYjiHQ7IXFujdVGjJizp4zBan4_3NCGkA.webp" alt="저니 (Journey)">
+                            <span class="game-title">저니 (Journey)</span>
+                        </li>
+                        <li data-title="코쿤 (COCOON)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/ZxySPHFpvjvgQQQk-aMD1k9O1My6C6cMTfBdCyJYueHGfkVmnEjOINgM4p_w_Lyp6C6Tq36Ouppo8qYUDwlqkfUTcCInM07tL0yCzrN3siAk275EuiTGdPQowIQb572OFso1ySnTHhkJvQAYajxmrw.webp" alt="코쿤 (COCOON)">
+                            <span class="game-title">코쿤 (COCOON)</span>
+                        </li>
+                        <li data-title="투 더 문 (To the Moon)"
+                            onclick="showVideo([
+                                {title: '[To the Moon] 눈물이 차올라서 고갤 들어', link: 'https://youtu.be/6igbLNfsOnw?si=UiwrzsS3g8YuOoQE', date: '2023-08-23'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/2-ToMtoXM3lEehXsMFnkekcyvTZbBeAz6VQbOs6-0CUbB0okq9Vy2VBZsxZJveY6qI9lcSgqhALPBL6VlU4dRGsB8JTY5uZ03zus9QHrjEttS3fOHWikt3ru-AEOqIbXs5qxC_8GZPBIA5VFUSy9tQ.webp" alt="투 더 문 (To the Moon)">
+                            <span class="game-title">투 더 문 (To the Moon)</span>                            
+                        </li>
+                        <li data-title="플래닛 오브 라나 (Planet of Lana)"
+                            onclick="showVideo([
+                                {title: '고양이가 세상을 구한다', link: 'https://youtu.be/G3kd03OlT7M?si=YgIiH7DCIjrnf3Go', date: '2024-10-18'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1608230/header.jpg?t=1705331568" alt="플래닛 오브 라나 (Planet of Lana)">
+                            <span class="game-title">플래닛 오브 라나 (Planet of Lana)</span>                            
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('IndieGames')">
+                    13. 인디 / 캐주얼 게임
+                    <span class="toggle-icon" id="IndieToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="IndieCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="IndieGames">
+                    <ul class="game-list">
+                        <li data-title="3초바나나 (3秒ばなな)"
+                            onclick="showVideo([
+                                {title: '단 1번도 씻지 않은 바나나', link: 'https://youtu.be/j_cYHbBprZ0?si=k-QJGlfCHQPguh_-', date: '2024-10-19'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2825250/header.jpg?t=1709540804" alt="3초바나나 (3秒ばなな)">
+                            <span class="game-title">3초바나나 (3秒ばなな)</span>
+                        </li>
+                        <li data-title="거츠 앤 글로리 (Guts and Glory)"
+                            onclick="showVideo([
+                                {title: '[Guts and Glory] 울 액희 ... 아빠 믿지?', link: 'https://youtu.be/R58t_dIUgfY?si=qtTRt7EWUZNhOAsY', date: '2023-05-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/HCXez7TdSiP02o0gtIdt2xn1XIrNTswk3MgICoYFJ5Y4IdmQx9kz3Oo7L1ixzkRLr23Y4lzKnfUojuauTasjRN3zycOn3P_ga8MFI5RJTdAkFl-GB_sjLhD3lW9J7oc7Ql_11QyqPsUzeSBY6DWnaQ.webp" alt="거츠 앤 글로리 (Guts and Glory)">
+                            <span class="game-title">거츠 앤 글로리 (Guts and Glory)</span>
+                        </li>
+                        <li data-title="곰 케이크 (La Madriguera)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/3G6kC20jOl6TLQfu6d1t0bShPGsfAb8Cb5R0KKsHVw5q3EyB6FYxITyaPKlR5m1IjAIZNSGHDSdhG6gIGoZUoogUvMZulXu5Wdr5XyCFdwF-jOxJHcpspwDGFz3C1D4B5wLMndUocTCdW2wEJOFWww.webp" alt="곰 케이크 (La Madriguera)">
+                            <span class="game-title">곰 케이크 (La Madriguera)</span>
+                        </li>
+                        <li data-title="다함께 쿠키요미 2"
+                            onclick="showVideo([
+                                {title: '[쿠키요미2] 눈치 챙겨야 하는데 말이죠', link: 'https://youtu.be/IpyeQlg_ChY?si=6v7VyAoJ3EK5tXUR', date: '2023-04-14'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1384380/header_koreana.jpg?t=1688094451" alt="다함께 쿠키요미 2">
+                            <span class="game-title">다함께 쿠키요미 2</span>
+                        </li>
+                        <li data-title="오목 가자"
+                            onclick="showVideo([
+                                {title: '(Shorts) 수다 스킬', link: 'https://youtube.com/shorts/D_z5XFGrscQ?si=GdRIsqSWbmV8EjU2', date: '2023-09-09'}
+                                ,{title: '(Shorts) 미래에서 온 오목', link: 'https://youtube.com/shorts/P4M-JSkcrKU?si=m9AxnhxyVU8mh6w2', date: '2024-04-26'}
+                                ,{title: '(Shorts) 스피드 오목', link: 'https://youtube.com/shorts/Rigz__n_Vm4?si=Zszbk8p6Pd-WF_vF', date: '2024-04-28'}
+                                ,{title: '(Shorts) 꼼수', link: 'https://youtube.com/shorts/JJKiUs06TqY?si=ZoZnSRULx0TsAGha', date: '2024-04-28'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/eCWea333mu1YffMz_1KHgkJ_LlkIKXvu7bh93jWaZU7IUFDFZVnHa1VGNYOl655argmX4xYEcnVLtWXHisLKudbdwCpfkAQxVTreAaZ_DWJ__F6eNGuxJio2XvJBrGCcmU0yjR6JtuJbhGldDqmrog.webp" alt="오목 가자">
+                            <span class="game-title">오목 가자</span>
+                        </li>
+                        <li data-title="캣츠 히든 인 파리 (Cats Hidden in Paris)"
+                            onclick="showVideo([
+                                {title: '[Cats Hidden in Paris] 귀여운 고양이를 찾아랴옹', link: 'https://youtu.be/pKxyTelle1U?si=To8wQ1BbbKpBd6tw', date: '2023-07-23'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2313250/header.jpg?t=1726644152" alt="캣츠 히든 인 파리 (Cats Hidden in Paris)">
+                            <span class="game-title">캣츠 히든 인 파리 (Cats Hidden in Paris)</span>
+                        </li>
+                        <li data-title="토리다마 -담력 시험-"
+                            onclick="showVideo([
+                                {title: '(Shorts) 전설의 해체 전문가', link: 'https://youtube.com/shorts/6WsqwdU-wvk?si=Cr6VdyjJpCUSwE1l', date: '2023-06-27'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2365880/header_koreana.jpg?t=1690851557" alt="토리다마 -담력 시험-">
+                            <span class="game-title">토리다마 -담력 시험-</span>
+                        </li>
+                        <li data-title="파스파투 2: 방황하는 예술가"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1571100/header_koreana.jpg?t=1726215878" alt="파스파투 2: 방황하는 예술가">
+                            <span class="game-title">파스파투 2: 방황하는 예술가</span>
+                        </li>
+                        <li data-title="파인애플 온 피자 (Pineapple on pizza)"
+                            onclick="showVideo([
+                                {title: '[Pineapple on pizza] 아 파인애플 피자 만들자며ㅋㅋㅋㅋ', link: 'https://youtu.be/xZCoP794nlo?si=JSvF-0-o1Igdby2M', date: '2023-10-13'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Fn46NmEhL2mgn5Bi0N9ilZ6tlQJslheBvA5PzlxkktqB5YFBCd9qpIA4TFbBUPsNq77hjgcq1OWVmGxkycfhaHi_WVk-GrBpUcB25YOsLTdxXCTviRCHWpRfhGguDqolFbjp6GAJY7pZRYkAEe2HPQ.webp" alt="파인애플 온 피자 (Pineapple on pizza)">
+                            <span class="game-title">파인애플 온 피자 (Pineapple on pizza)</span>
+                        </li>
+                        <li data-title="패킷 리스트(Packit List)"
+                            onclick="showVideo([
+                                {title: '잘 좀 쑤셔넣으면 안 될까?', link: 'https://youtu.be/S8vKAOAeHVk?si=otwi8AwciBP8Wq2q', date: '2024-09-29'}
+                                ,{title: '(Shorts) 있다고 말을 하지', link: 'https://youtube.com/shorts/Q_oXBIefPLs?si=jLbY6wWf5-d-GOz2', date: '2024-10-01'}
+                                ,{title: '(Shorts) 완벽했던 것', link: 'https://youtube.com/shorts/sTYbulzFcvE?si=CXRXIZUW6rdTuTig', date: '2024-10-02'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3084150/header.jpg?t=1725466763" alt="패킷 리스트(Packit List)">
+                            <span class="game-title">패킷 리스트(Packit List)</span>
+                        </li>
+                        <li data-title="프루트 마운틴 (Fruit Mountain) " onclick="showVideo(['준비중'])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2753620/header.jpg?t=1721732414" alt="프루트 마운틴 (Fruit Mountain) ">
+                            <span class="game-title">프루트 마운틴 (Fruit Mountain) </span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('DefenseGames')">
+                    14. 전략 / 디펜스 게임
+                    <span class="toggle-icon" id="DefenseToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="DefenseCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="DefenseGames">
+                    <ul class="game-list">
+                        <li data-title="911 오퍼레이터 (911 Operator)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/inymgwTU3uTbdIqj-inhclSwtUwNeXPTfljAIj_T2rcnsY4_GI7gD6mBY8I0bO4WCKCgZrV8Ti7E5Rx7wZv993ZQ_AcSmaiGJU9JR65bhPTQ9yXXZPQCLE6jwA9DY2BZJOakTlZFSEmB5TnwHBB1Jw.webp" alt="911 오퍼레이터 (911 Operator)">
+                            <span class="game-title">911 오퍼레이터 (911 Operator)</span>
+                        </li>
+                        <li data-title="락 '앤' 롤 디펜스 (Rock 'N' Roll Defense)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/438480/header.jpg?t=1725480615" alt="락 '앤' 롤 디펜스 (Rock 'N' Roll Defense)">
+                            <span class="game-title">락 '앤' 롤 디펜스 (Rock 'N' Roll Defense)</span>
+                        </li>
+                        <li data-title="리그 오브 레전드 (League of Legends)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/kO2FyIw_D4PvD4h_MYHl_qWZA1U6hdil81_61QAFDU_fq9HM03jhum2laleHol0woRXvsfVDIZazIEV3rBTioBc7Zc1mrOCk4QWVysZrraoemnUNtt7bvHslmtdwYQAp8y_uMHQNQlM0S9Sgn0MjGw.webp" alt="리그 오브 레전드 (League of Legends)">
+                            <span class="game-title">리그 오브 레전드 (League of Legends)</span>
+                        </li>
+                        <li data-title="야추 다이스 (Yacht Dice)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 이게 되네?', link: 'https://youtube.com/shorts/dslXkTTAsUk?si=OEEetFZWSVDT6to1', date: '2024-01-17'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1737690/header.jpg?t=1669786427" alt="야추 다이스 (Yacht Dice)">
+                            <span class="game-title">야추 다이스 (Yacht Dice)</span>
+                        </li>
+                        <li data-title="킹덤: 투 크라운(Kingdom Two Crowns)"
+                            onclick="showVideo([
+                                {title: '왕관의 무게를 견뎌라(※시간 순삭)', link: 'https://youtu.be/yqnkKdAZRSM?si=1kO59EuaV5Zz784h', date: '2024-10-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/w96hm1Qt_zAz2d5J1Vipag2uSjCwRw5J65kgx3ZfPrE0nBbaI9qOuoS98wD_VCGHdBOs6qwrgqaRJZvMEnf9RTbfIObSq4JS6qz3qHPVBkNomn8ctcxW1px1lMbk-OoYpQlzHsv9R9_SyoeJo--zqA.webp" alt="킹덤: 투 크라운(Kingdom Two Crowns)">
+                            <span class="game-title">킹덤: 투 크라운(Kingdom Two Crowns)</span>
+                        </li>
+                        <li data-title="폴리 브릿지 2 (Poly Bridge 2)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/6l0ewJtpx3PmXQbghCmikeUE2Pm5BrVoXbsxYtbbSsY0ywCm2-QQni4V4AIQ338BN0o66Epsv6erMFkML18myzKLzrg0K5EW1h1CswDj7JMz8ayT2yFrbtKUn2dEGczilrDcywBWuf6Pc7I8XYDQJA.webp" alt="폴리 브릿지 2 (Poly Bridge 2)">
+                            <span class="game-title">폴리 브릿지 2 (Poly Bridge 2)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('PuzzleGames')">
+                    15. 퍼즐 / 추리 게임
+                    <span class="toggle-icon" id="PuzzleToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="PuzzleCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="PuzzleGames">
+                    <ul class="game-list">
+                        <li data-title="Agent A - 숨겨진 퍼즐 (Agent A: A puzzle in disguise)"
+                            onclick="showVideo([
+                                {title: '[AGENT A] 스파이 언니야 어디가 나랑 놀아', link: 'https://youtu.be/qmW3GGaCS2M?si=d7hWomCsJlA-xWAP', date: '2023-07-27'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/GAeaK_H6h8tNg5T1S5IbNWKFBQe0wfUJEpDvgdIJM7B6BtbJ2t7_ZAo5UdpCS9k3mlh6wxKbx0dac8YGRxXhLaPXxnNhqhJyiPXRSNEv0qLZ5Fovzss2xehdv7hDJIIYdnJo4CnzXuvK5gpTSxgoVA.webp" alt="Agent A - 숨겨진 퍼즐 (Agent A: A puzzle in disguise)">
+                            <span class="game-title">Agent A - 숨겨진 퍼즐 (Agent A: A puzzle in disguise)</span>
+                        </li>
+                        <li data-title="림보 (LIMBO)"
+                            onclick="showVideo([
+                                {title: '[LIMBO] 그런 슬픈 엔딩이?ㅠㅠ 림보 공포 퍼즐 게임 풀영상', link: 'https://youtu.be/mvZwkg7v8tM?si=VXsjwzYr7sLyHedX', date: '2023-03-31'}
+                                ,{title: '(Shorts) 거미와 밀당하는 법', link: 'https://youtube.com/shorts/yo3WX_wf9ME?si=JqhOLN4-yhIjsjfa', date: '2023-04-02'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/oexIf_Bpx3mz1J13BuAWsS9aXTo0IlEVcRBSLlMGZ1eE6A1rqSeOW-dmifGUmmC4otBabPvB-qlK_sS4Fz6JfNbAtSEt5vxvhuT1_6x_k8P6dI6IMO09BmXjhUsZMGWMDgJ6dka7FBOA9ZxtU3fglw.webp" alt="림보 (LIMBO)">
+                            <span class="game-title">림보 (LIMBO)</span>
+                        </li>
+                        <li data-title="미제사건은 끝내야 하니까 (찍먹)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/93HjDGGfze03tGRZgKhC6-ShZ0NyvQIhpLPuOoMYqa4je-_xVvqaOtS8IN6tm3dWci4Z_8VaqGQJJRdPBsz6WCVG9H8k1yoVDZzciTnKk2oAvPgwodgUUEVTttQk-wxA1gRnKdnRV06W_bXEjYFxbA.webp" alt="미제사건은 끝내야 하니까 (찍먹)">
+                            <span class="game-title">미제사건은 끝내야 하니까 (찍먹)</span>
+                        </li>
+                        <li data-title="방 탈출 시뮬레이터(Escape Simulator)"
+                            onclick="showVideo([
+                                {title: '현실 방탈출보다 더 재밌고 알찬 방탈출 게임', link: 'https://youtu.be/E4aHUqfyeK0?si=zNR0KpuCrZy9LhGm', date: '2024-05-10'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1435790/header.jpg?t=1726508749" alt="방 탈출 시뮬레이터(Escape Simulator)">
+                            <span class="game-title">방 탈출 시뮬레이터(Escape Simulator)</span>
+                        </li>
+                        <li data-title="어 리틀 투 더 레프트 (A Little to the Left)"
+                            onclick="showVideo([
+                                {title: '웰컴 정리 지옥★ 쾌감을 부르는 게임ㅋㅋㅋ', link: 'https://youtu.be/A60IUz-pj4o?si=_DV7mefFa0thT9We', date: '2024-08-18'}
+                                ,{title: '(Shorts) 못 말리는 고양이', link: 'https://youtube.com/shorts/DuvtVdLoBVY?si=RIbL_2RALhhk3_Ms', date: '2024-08-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/vv9bEWsOdiBItVBH3zqzHMRduRSNZexhfoQBNhvh2Se6HbSKALYa88L0k9CN9FpMyc5CIQun7jNMkZjbIUn7hg0PEjdH5MaZR-iM0UfCBrbDorIUhlXqPCybGHn-coSDkVPis7xSjl_VhedKpa6yQQ.webp" alt="어 리틀 투 더 레프트 (A Little to the Left)">
+                            <span class="game-title">어 리틀 투 더 레프트 (A Little to the Left)</span>
+                        </li>
+                        <li data-title="언타이틀드 구스 게임 (Untitled Goose Game)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/P0PH_9YtVv8hKG7WsWsrf-iVaEENFAcfTIpMh3jfSkNcwLmcLy1PJdcxIGZJWBj_uB8ACWSnLsuwjUdeX8jSReF9g89Mamb3IcxYeFwdzGOgPjUJ-uh5gYGjQBORR6HUMu8s0BvTb_V6h-3MgDznqg.webp" alt="언타이틀드 구스 게임 (Untitled Goose Game)">
+                            <span class="game-title">언타이틀드 구스 게임 (Untitled Goose Game)</span>
+                        </li>
+                        <li data-title="언패킹 (Unpacking)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/yNGs65ORsNIH1J3qcHQZ4gCezBD9M_zWTYSZn3nVHS4soYB-CYeAn7B3W-1fFFo1xVCBbL3s6l0xX-NB8zsIZBv_n-cYpEJVwkDRzCyFBhEHeufb677rlq3HvmA10T3PHIuFtcVyO4WvSQ2SG4qrkg.webp" alt="언패킹 (Unpacking)">
+                            <span class="game-title">언패킹 (Unpacking)</span>
+                        </li>
+                        <li data-title="역전재판"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/6_tV-fFpwRW9Vd7uFWwdMD2t-ziUNl0kpknVgWVj8M9pZ2bTYLeaj3HBI6JHE9p4X6ju9OIBfajIU0D8e52_RKUA5TrDcRIgwuwwZoSELOhOZQUg4TY8aMpN19emET-eE7P1v8f5hKblZvWj8dbRLA.webp" alt="역전재판">
+                            <span class="game-title">역전재판</span>
+                        </li>
+                        <li data-title="위 워 히어 (We Were Here)"
+                            onclick="showVideo([
+                                {title: '[WE WERE HERE] 밖은 위험하니, 제가 먼저 기미상궁 하겠습니다', link: 'https://youtu.be/QNUFMQcIYrw?si=iOwmmUJBQ428Khvq', date: '2023-08-05'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/cQGI9zub8tNKrjpUEyLdS9A7o0OLlaX92ryXb-LGszxKuxrDU3mWXHXckiuJPU8n9nIPWIZA4ih457Lug0bPLRRfLfYWMsgCbDoQSLjVMI36AanByr52UKMaBWoStiftZUE6fuMonPBxFZyCVVThsw.webp" alt="위 워 히어 (We Were Here)">
+                            <span class="game-title">위 워 히어 (We Were Here)</span>
+                        </li>
+                        <li data-title="위 워 히어 투 (We Were Here Too)"
+                            onclick="showVideo([
+                                {title: '[WE WERE HERE TOO] 밖은 추우니까, 제가 나가겠습니다', link: 'https://youtu.be/QWgcw-PNs-o?si=W0tIKzMjQXa2UoHw', date: '2023-08-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/KSfVmec9DakkjeRO9IJ6_lz0LDTpr53mBwtEcSbiQgVzMZaysjhO0p7dq9kl0aBN57rasDrIdFDPbiBiIoKe015vuC3W5QRZ8QXwNw8YifVIyE9oiTn3HIHvHnFkiDuUuaKIfQYCoTLZmdRZoPEqfA.webp" alt="위 워 히어 투 (We Were Here Too)">
+                            <span class="game-title">위 워 히어 투 (We Were Here Too)</span>
+                        </li>
+                        <li data-title="위 워 히어 투게더 (We Were Here Together)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/hhym9BAx5dVNQR-qL0fhpax-Oe-krNqIlOVs0ohlI_jQYe6JHiF3k46Wbl42NS7qWTtQzJSgH2tHR3YsdIIsDByBe2jexxUZf8wOIJ6sGQIHh162HV4n-34CKnkpABX1pTNJqTMimp1RP4jYT_Ltog.webp" alt="위 워 히어 투게더 (We Were Here Together)">
+                            <span class="game-title">위 워 히어 투게더 (We Were Here Together)</span>
+                        </li>
+                        <li data-title="인사이드 (INSIDE)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/K7zHEhQb66NjbZILhDtIuJmkxug_2pkjLzZF7HSKYE1PFuq0XH7GcT6kMD4yaU2g99sZjPcKvNFY54-VAL3ZR8O_H1cq3HGFGTTkShoojPGCrr-S3wp3bLdHcySfY251wL7Ce1tidKoDgVlhMMWDhA.webp" alt="인사이드 (INSIDE)">
+                            <span class="game-title">인사이드 (INSIDE)</span>
+                        </li>
+                        <li data-title="인썸니아: 씨어터 인 더 헤드 (Insomnia: Theater in the Head)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085360/header.jpg?t=1727086580" alt="인썸니아: 씨어터 인 더 헤드 (Insomnia: Theater in the Head)">
+                            <span class="game-title">인썸니아: 씨어터 인 더 헤드 (Insomnia: Theater in the Head)</span>
+                        </li>
+                        <li data-title="페이퍼 트레일 (찍먹) (Paper Trail)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1889740/header_koreana.jpg?t=1728312506" alt="페이퍼 트레일 (찍먹) (Paper Trail)">
+                            <span class="game-title">페이퍼 트레일 (찍먹) (Paper Trail)</span>
+                        </li>
+                        <li data-title="포탈 2 (Portal 2)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/fo_a_ftYLRG_T9AEQmIor64ZA81MwLhF5yiECu6Wp6CfCYkuFCzY5DsIFCvwi-yVIHg1f2OzG76bMlzOT_bFdVBjesboE7DG7Tz7GI8GLhELlpz0SSdlMWdnA0X-4xdcCjNcwjK6j_zLiaovAk3WKg.webp" alt="포탈 2 (Portal 2)">
+                            <span class="game-title">포탈 2 (Portal 2)</span>
+                        </li>
+                        <li data-title="휴 (Hue)"
+                            onclick="showVideo([
+                                {title: '[HUE] 엄마 이거 꿈이지? 제발 꿈이라고 해줘', link: 'https://youtu.be/CzvwWrCHn60?si=k3RGj32Y6t4uOoCV', date: '2023-06-26'}
+                                ,{title: '(Shorts) 쫄무빙', link: 'https://youtube.com/shorts/yXStIqLfhQ8?si=e-eZnjup4A-27sjY', date: '2023-06-27'}
+                                ,{title: '(Shorts) 고라니 출현', link: 'https://youtube.com/shorts/dl7_B5chyTM?si=G18UxJ7jfVwTUtGq', date: '2023-06-27'}
+                                ,{title: '(Shorts) 대뜸 연기톤', link: 'https://youtube.com/shorts/9ynsB8DA4Hs?si=PGIyxto3wYM0KHJR', date: '2023-06-27'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/383270/header.jpg?t=1687360879" alt="휴 (Hue)">
+                            <span class="game-title">휴 (Hue)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('HorrorGames')">
+                    16. 호러 / 공포 게임
+                    <span class="toggle-icon" id="HorrorToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="HorroreCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="HorrorGames">
+                    <ul class="game-list">
+                        <li data-title="[Chilla's Art] Night Delivery | 例外配達 | 예외배달"
+                            onclick="showVideo([
+                                {title: '[Night Delivery | 例外配達] 호흡 곤란 야간 배달', link: 'https://youtu.be/rgcha06m_lo?si=CxpxZusfHoQUK1Qk', date: '2023-07-09'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/T8o-5tLs4yZtgciX6xGdFVvKQjISgklpYOmyAYPHmLbCGUDfdaETnpabCB53j3CShjyRfSy4h-Uq1Xm6dnOcv1PEpVM1LI6o1WZJzx5QnJuag1Qfh1MsJmEPHCJhzcIp9oCXHUGJlP0nW-bkqhP7ng.webp" alt="[Chilla's Art] Night Delivery | 例外配達 | 나이트 딜리버리">
+                            <span class="game-title">[Chilla's Art] Night Delivery | 例外配達 | 나이트 딜리버리</span>
+                        </li>
+                        <li data-title="[Chilla's Art] Night Security | 夜間警備 | 야간경비"
+                            onclick="showVideo([
+                                {title: '[Night Security | 夜間警備] 없던 수전증도 생기는 야간 경비 공포 게임', link: 'https://youtu.be/naaZnjUhVAY?si=A-Pk1HF1gSK_OGqg', date: '2023-07-24'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/0jY6Yi0pL1lfXiBTEbPU-E_h1YoDMBV30ktWQ_ilmj-Sw1YeoMpfW0b3irP_LgRj_OUkBqcWZI1lQ3dHdh4bz9ZgWnmT6GixS70X9f4JGdph51FZRWFsx6MYXJx52LpJllvFhoscTB6-rdhJJb7eQg.webp" alt="[Chilla's Art] Night Security | 夜間警備 | 야간경비">
+                            <span class="game-title">[Chilla's Art] Night Security | 夜間警備 | 야간경비</span>
+                        </li>
+                        <li data-title="[Chilla's Art] Parasocial | パラソーシャル | 파라소셜"
+                            onclick="showVideo([
+                                {title: '(얼굴공개) 공포게임 하다가 캠켜진 버튜버', link: 'https://youtu.be/v5CivRGn2H8?si=eI9oY0wm_hoCLuTt', date: '2023-08-27'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/SfDMB0zzDYPx0pL8PL2GoGkQNGzAIPQ4iBjStck3MG_s0Y0mW7lnUBjmTtlU4jG7K2dqs4NPDoPZAeFbxCcMSG3y1xNh93alB3MkYOJ2C8WN7-OFGOl9tzWO0h-lZL18w0nAeTgrprPJlBG9Pmmxww.webp" alt="[Chilla's Art] Parasocial | パラソーシャル | 파라소셜">
+                            <span class="game-title">[Chilla's Art] Parasocial | パラソーシャル | 파라소셜</span>
+                        </li>
+                        <li data-title="[Chilla's Art] Shinkansen 0 | 新幹線 0号 | 신칸센 0호"
+                            onclick="showVideo([
+                                {title: '머리까지 하얗게 질렸습니다', link: 'https://youtu.be/xVf5WGmNDfk?si=G-bFW7JJMT4Lwpx1', date: '2024-04-01'}
+                                ,{title: '(Shorts) 기절하겠는데', link: 'https://youtube.com/shorts/M3-YzaEVT1A?si=am5eGzcHlQJasmK2', date: '2024-05-18'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/1YGgUcBxezid-YLENFLbDo2LI-85HKpmtDL2H5CKfw25_HxJjJuTf9hEirqt_0SRO1pFC9krPEM2jD8_uhpD7UTJOSD80LbRmzPRWvaBtuwnA8z6VAwMb2iPmUVy2HX76WhDXEOJJoUFnaXLOlorCw.webp" alt="[Chilla's Art] Shinkansen 0 | 新幹線 0号 | 신칸센 0호">
+                            <span class="game-title">[Chilla's Art] Shinkansen 0 | 新幹線 0号 | 신칸센 0호</span>
+                        </li>
+                        <li data-title="[Chilla's Art] The Convenience Store | 夜勤事件 | 야근사건"
+                            onclick="showVideo([
+                                {title: '[The Convenience Store | 夜勤事件] 일본 편의점에서 야간 알바하는 공포 게임', link: 'https://youtu.be/ifmFBN3JYTA?si=b2ZpC9iI7vX3jC8K', date: '2023-07-02'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/608MJcrMYgAzj4KYJIP8_o4gZxVFg4557l2ui0e2M69MVSyLAfVw8dW4u-j1_E3mV65WAz99j_BUx9QMxPAvJaHUVE_UHSXqjtH7M2aiKmFGQeNYvOgbe2s8JIRfSuhDXlVMcP_jUVhEVnsgNhLMeg.webp" alt="[Chilla's Art] The Convenience Store | 夜勤事件 | 야근사건">
+                            <span class="game-title">[Chilla's Art] The Convenience Store | 夜勤事件 | 야근사건</span>
+                        </li>
+                        <li data-title="[Chilla's Art] The Kidnap | 誘拐事件 | 유괴사건"
+                            onclick="showVideo([
+                                {title: '[The Kidnap | 誘拐事件] 너 납치된 거야 (유괴사건 공포게임)', link: 'https://youtu.be/riueA40fSZ8?si=H564NmspzEK5Wd3P', date: '2023-11-08'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/T8V7iNhXD_c5he2GYsycN8c2YILRm5Vt-FbeAkiQ3xNZmburqkxel319fxF03jhfQLj954GTlx8YZ5BgiC8zk6_ZcoreRD7rr5JMqitAtNO-82LNlYYMkrbxxVdnU9Qat_SQcoxsrpCpOi-xC2GNrg.webp" alt="[Chilla's Art] The Kidnap | 誘拐事件 | 유괴사건">
+                            <span class="game-title">[Chilla's Art] The Kidnap | 誘拐事件 | 유괴사건</span>
+                        </li>
+                        <li data-title="13iew"
+                            onclick="showVideo([
+                                {title: '[13iew] 소름돋는 곳에 갇힌 소녀의 탈출 이야기! 숨겨진 진실과 엔딩', link: 'https://youtu.be/ZvvNf9c4QyI?si=30CewZHWme62o__q', date: '2023-05-08'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2362150/header.jpg?t=1680692781" alt="13iew">
+                            <span class="game-title">13iew</span>
+                        </li>
+                        <li data-title="8번 승강장 (8番のりば)"
+                            onclick="showVideo([
+                                {title: '제대로 소름 돋았습니다 (8번 승강장)', link: 'https://youtu.be/Y_IlEclTDqY?si=6gIeBvl7-IwySg-v', date: '2024-06-03'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/CXcQ-zr-D-36Np7YR1gIzqHSdVMtcpmWtJ0nezlZXdiA0hzBQPtdTHXQhg5PmcqqUgtnBTbDv6cVfuqiN07zlIu-a1K0Q28b8iin1TUnVCJ2JPr9P1UxQIobYIdWIptRfprqxnGPsNao7r_0F7w9Hg.webp" alt="8번 승강장 (8番のりば)">
+                            <span class="game-title">8번 승강장 (8番のりば)</span>
+                        </li>
+                        <li data-title="8번 출구 (8番出口)"
+                            onclick="showVideo([
+                                {title: '8번 출구로 나가면 된다는데..O.O', link: 'https://youtu.be/UwCjFk6YEQo?si=5yjn1ig5A1T9efTW', date: '2023-12-12'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/ZvYOPjzjgWTRfrDARo8y2vVc6Iqedc_cTUxnhiqCJdWwRZW1cGymcaQXzOzE7yOjcNJx2y8txFGbX391BHLCi1an4guefdZJd5xhaADgOl2XS9HR1UpZqMm6iqt6BK43lWr4d8oaMVHFlr5-a_0_6Q.webp" alt="8번 출구 (8番出口)">
+                            <span class="game-title">8번 출구 (8番出口)</span>
+                        </li>
+                        <li data-title="가르텐 오브 반반 7 (Garten of Banban 7)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2693060/header.jpg?t=1720876921" alt="가르텐 오브 반반 7 (Garten of Banban 7)">
+                            <span class="game-title">가르텐 오브 반반 7 (Garten of Banban 7)</span>
+                        </li>
+                        <li data-title="당신의 앞날을 축복합니다"
+                            onclick="showVideo([
+                                {title: '퇴마사의 사정, 퇴마가 제일 쉬웠어요', link: 'https://youtu.be/lDAC0UFnCbU?si=h_fi3KpTf7RElw8m', date: '2024-10-08'}
+                                ])">
+                            <img class="game-image" src="https://d2x8kymwjom7h7.cloudfront.net/live/application_no/119001/application_no/119001/images/stove1_1709369508384.png" alt="당신의 앞날을 축복합니다">
+                            <span class="game-title">당신의 앞날을 축복합니다</span>
+                        </li>
+                        <li data-title="더 갭 (The Gap)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2345630/header.jpg?t=1682833728" alt="더 갭 (The Gap)">
+                            <span class="game-title">더 갭 (The Gap)</span>
+                        </li>
+                        <li data-title="돈 스크림 (DON'T SCREAM)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/8F1i2i5CAWVGusxBf4nNt64odukGwzzR3VaDb6gIk-qJvUQn8ieufbpR_i4dxfoocNjOSY9J-Qxmcjw7m37HTIhYJU_niw1BJVcHLvLLOBjh_Kqw0WKU0pSsb_A7i1dmap5jakXCMzfOO9EJr3m2hQ.webp" alt="돈 스크림 (DON'T SCREAM)">
+                            <span class="game-title">돈 스크림 (DON'T SCREAM)</span>
+                        </li>
+                        <li data-title="미드나이트 씬즈: 어 세이프 플레이스 (Midnight Scenes: A Safe Place)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-18'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2485750/header.jpg?t=1726737022" alt="미드나이트 씬즈: 어 세이프 플레이스 (Midnight Scenes: A Safe Place)">
+                            <span class="game-title">미드나이트 씬즈: 어 세이프 플레이스 (Midnight Scenes: A Safe Place)</span>
+                        </li>
+                        <li data-title="벅샷 룰렛 (Buckshot Roulette)"
+                            onclick="showVideo([
+                                {title: '실탄이냐 공포탄이냐 그것이 문제로다', link: 'https://youtu.be/kXyd5rMC9Vk?si=q9QpIsMaYFNEZrA0', date: '2024-05-09'}
+                                ,{title: '(Shorts) 실탄 장인', link: 'https://youtube.com/shorts/VYtjzAhil1Q?si=1jPOJHgFNpoqoNpw', date: '2024-05-17'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/MoMKYcSfvHzs3YApzTTN5YCttEturhb_6Y_Uz2WjKpAD432f1RcancaCqs41eB7JqqWX6kW-GzrA8JWJ4oJ1i-9Mbh2TvjOmigtbqhUdcIwqjr2HR7i-zxQlIruK6I6_oJ3aqCDdHRN5mlC1madJtA.webp" alt="벅샷 룰렛 (Buckshot Roulette)">
+                            <span class="game-title">벅샷 룰렛 (Buckshot Roulette)</span>
+                        </li>
+                        <li data-title="아만다 더 어드벤처 (Amanda the Adventurer)"
+                            onclick="showVideo([
+                                {title: '[Amanda the Adventurer] 아이고 만다야~ 어쩌다 엔딩 모음집', link: 'https://youtu.be/nTCU1ROnpdo?si=JRfFSroVp5p3NORw', date: '2023-05-12'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/UodIAPZjc1oVl_dGbyFuaPFG4jWi3gisxOTX59YNsMEdtiW3WEMdrItrc3vSTrJFRNvpWdbWwiwGoJDEF3P5mAHmUr7uaBY9VD2h8LUJw0kv8jn8Qho2wnSuWDV-l7oGLENIwwC-cvu6w5A3zHE-ig.webp" alt="아만다 더 어드벤처 (Amanda the Adventurer)">
+                            <span class="game-title">아만다 더 어드벤처 (Amanda the Adventurer)</span>
+                        </li>
+                        <li data-title="아파트먼트 1406: 호러 (Apartament 1406: Horror)"
+                            onclick="showVideo([
+                                {title: '[Apartament 1406] 저주받은 아파트가 있다고? 참을 수 없어요', link: 'https://youtu.be/LdHT6Ma35o0?si=rGMmUMnYnX7pbRx4', date: '2023-09-04'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2419900/header.jpg?t=1728818958" alt="아파트먼트 1406: 호러 (Apartament 1406: Horror)">
+                            <span class="game-title">아파트먼트 1406: 호러 (Apartament 1406: Horror)</span>
+                        </li>
+                        <li data-title="여귀교2: 자유로운 영혼의 길"
+                            onclick="showVideo([
+                                {title: '[여귀교2 : 자유로운 영혼의 길] 심상치 않은 공포 게임, 분명 예고편일 뿐이었는데?', link: 'https://youtu.be/HO_i-1U3E58?si=dMD0JELzNDpKcyjT', date: '2024-05-22'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Iic1l15oBpktE9_S3-Lq1oNY7_g3tlHFDE1xjFSLaakJ3MX8gyqy7Z5OEjSDQbQ95RLMhRPy4biVV-zYAtlOrBKVgcgmHo63MYSuutKgOvMtXgu8RfyaYlKYM183RouBSjDiyaCY9Cxk-_HmzGBfFA.webp" alt="여귀교2: 자유로운 영혼의 길">
+                            <span class="game-title">여귀교2: 자유로운 영혼의 길</span>
+                        </li>
+                        <li data-title="인디고 파크: 챕터 1 (Indigo Park: Chapter 1)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 공포 게임할 때 특', link: 'https://youtube.com/shorts/QsMUzWlFB6k?si=Db7-yU_tjFoQkwNh', date: '2024-06-16'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2504480/header.jpg?t=1716044832" alt="인디고 파크: 챕터 1 (Indigo Park: Chapter 1)">
+                            <span class="game-title">인디고 파크: 챕터 1 (Indigo Park: Chapter 1)</span>
+                        </li>
+                        <li data-title="지옥전탕 리스토어드 에디션 (The Bathhouse | 地獄銭湯 Restored Edition)"
+                            onclick="showVideo([
+                                {title: '아 심박수 고장난 것 같은데', link: 'https://youtu.be/hSR9PNsEfr4?si=2eExBBzUTQzGFcrl', date: '2024-08-21'}
+                                ,{title: '(Shorts) 공포게임을 즐기는 방법', link: 'https://youtube.com/shorts/UacS0xStLZs?si=vl7i2aXv078w4FgL', date: '2024-08-29'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/W4YehEw0FPKG4CWIpiNAWXBrc6GKcf4UekQq_Hzf-ygV_TB3Xh7HqM28_Js7ba7dk68_wpQFi_-kJrWjYpUQnd2Izmblpbp85AjZYID1WmTQbx86N-Z4bNdJQz3AeZKeh-lds2wBou67j9ETyI0ruQ.webp" alt="지옥전탕 리스토어드 에디션 (The Bathhouse | 地獄銭湯 Restored Edition)">
+                            <span class="game-title">지옥전탕 리스토어드 에디션 (The Bathhouse | 地獄銭湯 Restored Edition)</span>
+                        </li>
+                        <li data-title="카에리미치 (孵道)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-18'}
+                                ])">
+                            <img class="game-image" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3080920/header.jpg?t=1728000022" alt="카에리미치 (孵道)">
+                            <span class="game-title">카에리미치 (孵道)</span>
+                        </li>
+                        <li data-title="크림슨 스노우 (Crimson Snow)"
+                            onclick="showVideo([
+                                {title: '[CRIMSON SNOW] 4월에 크리스마스를? 싸이코가 쫓아와요..', link: 'https://youtu.be/JLi4sFnJfDA?si=PJZ1480qrrevf0eS', date: '2023-04-02'}
+                                ,{title: '(Shorts) 버튜버의 무빙실력 (공포게임)', link: 'https://youtube.com/shorts/uMxj4dTCP1w?si=E1a1zYE09worGYmd', date: '2023-04-07'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2067790/header.jpg?t=1687346252" alt="크림슨 스노우 (Crimson Snow)">
+                            <span class="game-title">크림슨 스노우 (Crimson Snow)</span>
+                        </li>
+                        <li data-title="파스모포비아 (Phasmophobia)"
+                            onclick="showVideo([
+                                {title: '[Phasmophobia] 고인물 게임에 화려한 뉴비의 등장! 우당탕탕 유령 찾기 | 파스모포비아', link: 'https://youtu.be/FD5Dv91vb-o?si=oqHSRtZtzkMyMhU-', date: '2023-08-01'}
+                                ,{title: '그냥 무서운 유령을 찾아라', link: 'https://youtu.be/-ccQyrpb-Bw?si=tl4Qx50xhDbxBcoz', date: '2023-10-05'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/7QXWnBSDWJ5IjmXD8fsjsmjDqojfnh6BldXFSouIhOBJhKtu6VtJcv38Vnx_YK9-JpmCOWA0eRLpiYa3Exz-8KrZEQJ1be9b80TpgMqO8K0Fk6M3KKFH2QjqJaAYCFdAPDBijfRt7WccirT-r4Bnfg.webp" alt="파스모포비아 (Phasmophobia)">
+                            <span class="game-title">파스모포비아 (Phasmophobia)</span>
+                        </li>
+                        <li data-title="파피 플레이타임 - 챕터 3 (Poppy Playtime - Chapter 3)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 충격적인 스피드', link: 'https://youtube.com/shorts/W09asOxUtmU?si=aDZXgEkgSsInjAJk', date: '2024-02-10'}
+                                ,{title: '(Shorts) 발견의 기쁨', link: 'https://youtube.com/shorts/AksgOlLNfOI?si=cobrIf1JrWZhl3M4', date: '2024-02-10'}
+                                ,{title: '(Shorts) 취객 방문', link: 'https://youtube.com/shorts/vB-S_2UjS_E?si=qKo3xkqkNF36z-5W', date: '2024-02-10'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/nBd85nFlWTntdmg7FXWI2CbiYXDT7y7SVnvwzRr12xpO7t0vOmlbr3qvPqaPD4FMpcIjeNmGBjdkEoD6CutGtEwbYBv8AoPv9gKyGSIxStDY4TwHEEh5O9QveCe4RVI7xyBgrNMVQ5Kca7_RHJVTVw.webp" alt="파피 플레이타임 - 챕터 3 (Poppy Playtime - Chapter 3)">
+                            <span class="game-title">파피 플레이타임 - 챕터 3 (Poppy Playtime - Chapter 3)</span>
+                        </li>
+                        <li data-title="풀즈 (Pools)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 쉽지 않네', link: 'https://youtube.com/shorts/bP2FHlPpfh0?si=iElHMmMyD_19VBUm', date: '2024-04-27'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/rM54ZyEgbpSXxsRvvOnPhfmDyUgTtAAJ_nRXnEqrsOAOec9TJpL452oNFdwViuY2BzmLZygiy_wvZedWfYjAOn31yzx3qQOutAx0PGpteuQqPNvy9M5mVwPFGKSGgCRjLFK-E9eg9dHm6JjAfBI-Tg.webp" alt="풀즈 (Pools)">
+                            <span class="game-title">풀즈 (Pools)</span>
+                        </li>
+                        <li data-title="플랫헤드 (Flathead)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 인생은 한방', link: 'https://youtube.com/shorts/QvCrp-VbCgw?si=WjprXCptcWliMX9R', date: '2024-07-07'}
+                                ,{title: '(Shorts) 로또 사야된다니까', link: 'https://youtube.com/shorts/4rEPxx5TRP4?si=j0Huw1NTVXMwQq27', date: '2024-07-08'}
+                                ])">
+                            <img class="game-image" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2840480/header.jpg?t=1723137141" alt="플랫헤드 (Flathead)">
+                            <span class="game-title">플랫헤드 (Flathead)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 onclick="toggleGamesList('webGames')">
+                    17. 기타 / 웹 게임
+                    <span class="toggle-icon" id="webToggle">▼</span> <!-- 아래 방향 화살표 -->
+                    <span id="webCount" class="game-count"></span> <!-- 게임 개수 표시 -->
+                </h2>
+                <div class="games-list" id="webGames">
+                    <ul class="game-list">
+                        <li data-title="[플래시게임] 매닉 라이더 (Manic Rider)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 기면증', link: 'https://youtube.com/shorts/AFBUP1suP-w?si=mH_C8zrEXvqfPsdm', date: '2023-10-05'}
+                                ])">
+                            <img class="game-image" src="https://gamezzang.com/wp-content/uploads/2024/07/Manic-Rider-%EC%82%B0%EC%95%85%EC%98%A4%ED%86%A0%EB%B0%94%EC%9D%B4-%ED%94%8C%EB%9E%98%EC%8B%9C%EA%B2%8C%EC%9E%84.webp" alt="매닉 라이더 (Manic Rider)">
+                            <span class="game-title">[플래시게임] 매닉 라이더 (Manic Rider)</span>
+                        </li>
+                        <li data-title="[플래시게임] 바버 (Barber)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 헤어 디자인', link: 'https://youtube.com/shorts/Zdu3rWo_qv4?si=Zu4PHoODb129dcF9', date: '2024-10-18'}
+                                ])">
+                            <img class="game-image" src="https://mblogthumb-phinf.pstatic.net/20100310_299/me15113_1268206596887WSlsh_jpg/1_me15113.jpg?type=w420" alt="[플래시게임] 바버 (Barber)">
+                            <span class="game-title">[플래시게임] 바버 (Barber)</span>
+                        </li>
+                        <li data-title="[플래시게임] 백층탈출3 리메이크"
+                            onclick="showVideo([
+                                {title: '(Shorts) 백층 탈출', link: 'https://youtube.com/shorts/xXcEwqRRvkM?si=7Nfvs0wmNP3E0CKC', date: '2024-10-19'}
+                                ])">
+                            <img class="game-image" src="https://blog.kakaocdn.net/dn/m8PXG/btsIEXd6eas/qPyIgquWFxBSh3nEkCA3Y0/img.png" alt="[플래시게임] 백층탈출3 리메이크">
+                            <span class="game-title">[플래시게임] 백층탈출3 리메이크</span>
+                        </li>
+                        <li data-title="[플래시게임] 뽀로로 놀이교실: 패티의 신체·미술 놀이 - 장애물 달리기"
+                            onclick="showVideo([
+                                {title: '(Shorts) 뽀로로의 인기', link: 'https://youtube.com/shorts/QYT1C1MIyZI?si=0zVdJ2oDXWOnHBJ9', date: '2024-10-19'}
+                                ])">
+                            <img class="game-image" src="https://blog.kakaocdn.net/dn/ba9qoC/btsIy6qFBV2/gAOurV8BGi5U67AIzjGokK/img.png" alt="[플래시게임] 뽀로로 놀이교실: 패티의 신체·미술 놀이 - 장애물 달리기">
+                            <span class="game-title">[플래시게임] 뽀로로 놀이교실: 패티의 신체·미술 놀이 - 장애물 달리기</span>
+                        </li>
+                        <li data-title="[플래시게임] 슈의 로즈오또 만들기 (suika-game.app/ko)"
+                            onclick="showVideo([
+                                {title: '(Shorts) 청천벽력', link: 'https://youtube.com/shorts/YJMubc0dX-k?si=d3Nf5PyFeI2MdKTm', date: '2024-08-21'}
+                                ])">
+                            <img class="game-image" src="https://mblogthumb-phinf.pstatic.net/MjAyNDA2MjVfMTI5/MDAxNzE5MjcwMDAzMzUw.JqCkeHelTZE4bGZL2WgNhjkQbUtiOnLK-59T_ebNbPAg.fMJhGxcktQLkstLFRzIixvdIRfaCR_WUKm8aN9D95NAg.JPEG/IMG_7059.jpg?type=w800" alt="슈의 로즈오또 만들기">
+                            <span class="game-title">[플래시게임] 슈의 로즈오또 만들기</span>
+                        </li>
+                        <li data-title="[플래시게임] 장미와 동백 (Rose and Camellia)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/TMzZvNFrAj83wmpPH5jSjRYhpojtusgzvXsdcW8jhVpRdk_vk33c6ruTeH3dM1WzPm5FIsC2b-I-pE2wOJFfR_XSiau17iqi85CXyUkecKICG7FRftkp1iEW3GbpbZlvarwpnCg7aPxQ3CtNEQAlJA.webp" alt="장미와 동백 (Rose and Camellia)">
+                            <span class="game-title">[플래시게임] 장미와 동백 (Rose and Camellia)</span>
+                        </li>
+                        <li data-title="갈틱쇼 (Gartic Show)"
+                            onclick="showVideo([
+                                {title: '무언가 이상한 갈틱쇼ㅋㅋㅋㅋㅋ 이해불가 얼렁뚱땅', link: 'https://youtu.be/p3-Dqo_3EbA?si=f16ZlBJlEGWlib3U', date: '2023-05-18'}
+                                ])">
+                            <img class="game-image" src="https://image.shelter.id/1642741927709_%EA%B0%88%ED%8B%B1%EC%87%BC.png" alt="갈틱쇼 (Gartic Show)">
+                            <span class="game-title">갈틱쇼 (Gartic Show)</span>
+                        </li>
+                        <li data-title="섯다: 한게임"
+                            onclick="showVideo([
+                                {title: '[섯다] 하여자 특 올인했다가 후회함', link: 'https://youtu.be/Q-RQ84JwOcE?si=nLSg48PIXapHfbRk', date: '2023-10-04'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/Pim6MHiusav55yXOXmhJpFyLsce09EQdBelYWjf23RIA6p5dkRbmzol-oB779vMpTjxus_lawnDXLuOaEI_Bpw.webp" alt="섯다: 한게임">
+                            <span class="game-title">섯다: 한게임</span>
+                        </li>
+                        <li data-title="수박 게임 (suika-game.app/ko)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/DUsHaGR7DWEXmEEBVYVBhFUI2-qKDUC0vaN6GGV9KPvJbLSTkoy5pxuo_tlfrDCkwdx1riosu4JuudMwuLL45P0PIWxor8j21kXKhS8-GcD0bl_w4vw7xE2B_cFSln_5gBE0K9kVIfuzDn_C5SJnAg.webp" alt="수박 게임 (suika-game.app/ko)">
+                            <span class="game-title">수박 게임 (suika-game.app/ko)</span>
+                        </li>
+                        <li data-title="스도쿠 (sudoku.com/ko)"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/YXy-bFeRoUw6Xtwl2hEGMwtIrHr8Kz8cmbzugA81B2HhFkWOAHxMxoUxuS5OphmL8Iss29xtx3cC4B5ni_zF27vtHP4SSJxIOmnJHdtNf8r6_FSxXjllK0LQ8TVp_UMeuB4l5B4m5XMSZBCeEh3AEQ.webp" alt="스도쿠 (sudoku.com/ko)">
+                            <span class="game-title">스도쿠 (sudoku.com/ko)</span>
+                        </li>
+                        <li data-title="지렁이게임 (slither.io)"
+                            onclick="showVideo([
+                                {title: '[slither.io] 왕 먹고 왕 커서 왕꿈틀이가 될래요', link: 'https://youtu.be/zJYRUF3pWbU?si=qcWOAPyMan-vzZq2', date: '2023-06-16'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/lGOdMt8BvvkVAtEzkjR9qHQz0Ap03UcBLNcnUaUDwFZAMhWl5G5gjHta0vt5NU-SB1Kny3jI_iN58iqp_nO7kbJTu9vl65rV7mGoNxb8k3SwG-j0YWMV14tDy3LSSjGQqucQIzqeOv3c0HWDRFeVQA.webp" alt="지렁이게임 (slither.io)">
+                            <span class="game-title">지렁이게임 (slither.io)</span>
+                        </li>
+                        <li data-title="하노이탑"
+                            onclick="showVideo([
+                                {title: '준비중', link: 'https://www.youtube.com/@moonbutter365', date: '2024-10-20'}
+                                ])">
+                            <img class="game-image" src="https://i.namu.wiki/i/rHjiwcx1XHbH_QDNlpgtavz4fFazrCh_KyBQbKN5s93hF0Pga9RNVhVS_qvanWuQKM3QaNtT8DInyiKt_X_KEuYhWoT0X76zFQfWHe4UnKtTDc0yaZ8W47nxSNmDFgUQ1v12sgjA7XWjSmtw_5vHNA.webp" alt="하노이탑">
+                            <span class="game-title">하노이탑</span>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="right-container">
+                <h2>영상 링크</h2>
+                <ul id="videoList">
+                    <li>선택된 게임의 링크가 여기에 나타납니다.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 다크 모드 토글 기능
+        const toggleButton = document.getElementById('toggleDarkMode');
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            toggleButton.classList.toggle('dark-mode'); // 스위치 상태 변경
+        });
+
+       // 게임 클릭 시 영상 제목과 날짜 표시 (제목 클릭 시 링크 이동)
+        function showVideo(videos) {
+        const videoList = document.getElementById('videoList');
+        videoList.innerHTML = ''; // 기존 목록 삭제
+
+        videos.forEach(video => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="${video.link}" target="_blank">${video.title} <br>${video.date}</a>`;
+            videoList.appendChild(li);
+        });
+    }
+
+        // 게임 목록 접기/펼치기 기능
+        function toggleGamesList(listId) {
+            const gamesList = document.getElementById(listId);
+            const toggleIcon = document.getElementById(
+                listId === 'aiGames' ? 'aiToggle' : 
+                listId === 'fpsGames' ? 'fpsToggle' : 
+                listId === 'vrGames' ? 'vrToggle' : 
+                listId === 'racingGames' ? 'racingToggle' : 
+                listId === 'multiGames' ? 'multiToggle' : 
+                listId === 'sandboxGames' ? 'sandboxToggle' : 
+                listId === 'survivalGames' ? 'survivalToggle' : 
+                listId === 'SportsGames' ? 'SportsToggle' : 
+                listId === 'SimulationGames' ? 'SimulationToggle' : 
+                listId === 'rpgGames' ? 'rpgToggle' : 
+                listId === 'platformGames' ? 'platformToggle' : 
+                listId === 'StoryGames' ? 'StoryToggle' : 
+                listId === 'IndieGames' ? 'IndieToggle' : 
+                listId === 'DefenseGames' ? 'DefenseToggle' : 
+                listId === 'PuzzleGames' ? 'PuzzleToggle' : 
+                listId === 'HorrorGames' ? 'HorrorToggle' : 
+                listId === 'webGames' ? 'webToggle' : 
+    null // 기본값 처리
+);
+            if (gamesList.style.display === 'block') {
+                gamesList.style.display = 'none'; // 목록 접기
+                toggleIcon.innerHTML = '▲'; // 위 방향 화살표
+            } else {
+                gamesList.style.display = 'block'; // 목록 펼치기
+                toggleIcon.innerHTML = '▼'; // 아래 방향 화살표
+            }
+        }
+
+        // 게임 개수 업데이트 기능
+        function updateGameCount(listId) {
+            const gamesList = document.getElementById(listId);
+            const gameItems = gamesList.querySelectorAll('li');
+            const countSpan = document.getElementById(listId === 'aiGames' ? 'aiCount' : 
+                                                     listId === 'fpsGames' ? 'fpsCount' : 
+                                                     listId === 'vrGames' ? 'vrCount' : 
+                                                     listId === 'racingGames' ? 'racingCount' : 
+                                                     listId === 'multiGames' ? 'multiCount' : 
+                                                     listId === 'sandboxGames' ? 'sandboxCount' : 
+                                                     listId === 'survivalGames' ? 'survivalCount' : 
+                                                     listId === 'SportsGames' ? 'SportsCount' : 
+                                                     listId === 'SimulationGames' ? 'SimulationCount' : 
+                                                     listId === 'rpgGames' ? 'rpgCount' : 
+                                                     listId === 'platformGames' ? 'platformCount' : 
+                                                     listId === 'StoryGames' ? 'StoryCount' : 
+                                                     listId === 'IndieGames' ? 'IndieCount' : 
+                                                     listId === 'DefenseGames' ? 'DefenseCount' : 
+                                                     listId === 'PuzzleGames' ? 'PuzzleCount' : 
+                                                     listId === 'HorrorGames' ? 'HorroreCount' : 
+                                                     listId === 'webGames' ? 'webCount' : 
+                                                     null);
+            countSpan.textContent = `(${gameItems.length})`; // 게임 개수 표시
+        }
+
+        // 총 게임 수 업데이트 기능
+        function updateTotalCount() {
+            const allGames = document.querySelectorAll('.game-list li');
+            const totalCount = allGames.length;
+            document.getElementById('totalCount').textContent = `총 게임 수: ${totalCount}`; // 총 게임 수 표시
+        }
+
+        // 기존 게임 목록을 표시할 때 개수 업데이트
+        updateGameCount('aiGames');
+        updateGameCount('fpsGames');
+        updateGameCount('vrGames');
+        updateGameCount('racingGames');
+        updateGameCount('multiGames');
+        updateGameCount('sandboxGames');
+        updateGameCount('survivalGames');
+        updateGameCount('SportsGames');
+        updateGameCount('SimulationGames');
+        updateGameCount('rpgGames');
+        updateGameCount('platformGames');
+        updateGameCount('StoryGames');
+        updateGameCount('IndieGames');
+        updateGameCount('DefenseGames');
+        updateGameCount('PuzzleGames');
+        updateGameCount('HorrorGames');
+        updateGameCount('webGames');
+        updateTotalCount(); // 초기 총 게임 수 업데이트
+
+
+        // 게임 검색 기능
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const gameItems = document.querySelectorAll('.game-list li');
+
+            gameItems.forEach(item => {
+                const title = item.getAttribute('data-title').toLowerCase();
+                if (title.includes(searchTerm)) {
+                    item.style.display = ''; // 검색어가 포함된 경우 표시
+                } else {
+                    item.style.display = 'none'; // 포함되지 않은 경우 숨김
+                }
+            });
+            updateTotalCount(); // 검색 후 총 게임 수 업데이트
+        });
+    </script>
+
+</body>
+</html>
